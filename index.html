@@ -144,10 +144,11 @@ let ctrlDown=false,ghostSnap=null,alignGuides=[];
 let mdPos=null,mdVert=-1,mdWall=-1,didDrag=false;
 let simResults=null;
 let hoverTile=null; // {ri, ti}
-let toolbox=[]; // removed tiles: {tile, ri}
+let toolbox=[]; // removed tiles: {tile}
 let heldTile=null; // tile "in hand" from toolbox, ready to place
-let dragTile=null; // {ri,ti,offX,offY} — dragging tile on canvas
-let dragTilePos=null; // current screen position of dragged tile
+let heldRotated=false;
+let mouseScreen={x:0,y:0}; // current mouse screen position
+let dragTileInfo=null; // {ri,ti,offX,offY} for canvas tile dragging
 
 function R(){return rooms[activeRoom]}
 function shouldSnap(){return snapMode||ctrlDown}
@@ -185,6 +186,7 @@ function alignSnap(wx,wy,excludeIdx){
 function wallOrient(a,b){return Math.abs(a.x-b.x)>=Math.abs(a.y-b.y)?'h':'v'}
 function closeTarget(){return drawFrom===0?R().verts.length-1:0}
 function isEndVertex(i){return i===0||i===R().verts.length-1}
+function heldDims(){if(!heldTile)return null;const t=heldTile.tile;return heldRotated?{w:t.h,h:t.w}:{w:t.w,h:t.h}}
 function updateModeTag(){const r=R();if(r.closed)$('modeTag').textContent='EDIT';else if(drawFrom>=0)$('modeTag').textContent='DRAW';else $('modeTag').textContent=r.verts.length>0?'PAUSED':'DRAW'}
 function toggleSnap(){snapMode=!snapMode;$('snapBtn').classList.toggle('snap-on',snapMode);$('snapBtn').style.background=snapMode?'':'#333'}
 
@@ -355,9 +357,10 @@ function hitTile(sx,sy){
 function drawTiles(){
   if(!simResults)return;const lt=isLight(),isBM=simResults.mode==='budget';
   const inset=Math.max(1,scale*0.3);
+  const hd=heldDims();
   for(let ri=0;ri<simResults.rooms.length;ri++){const rr=simResults.rooms[ri];for(let ti=0;ti<rr.tiles.length;ti++){const t=rr.tiles[ti];
     if(t.type==='removed')continue;
-    const isHov=isBM&&hoverTile&&hoverTile.ri===ri&&hoverTile.ti===ti&&!heldTile&&!dragTile;
+    const isHov=isBM&&hoverTile&&hoverTile.ri===ri&&hoverTile.ti===ti&&!dragTileInfo;
     const sx=w2x(t.x)+inset,sy=w2y(t.y)+inset,sw=t.w*scale-inset*2,sh=t.h*scale-inset*2;
     if(sw<=0||sh<=0)continue;
     if(t.type==='full')ctx.fillStyle=lt?'rgba(74,144,217,0.3)':'rgba(74,144,217,0.45)';
@@ -367,25 +370,41 @@ function drawTiles(){
     ctx.fillRect(sx,sy,sw,sh);
     if(t.type==='unfilled'){
       ctx.strokeStyle=lt?'rgba(200,50,50,0.3)':'rgba(200,50,50,0.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeRect(sx,sy,sw,sh);ctx.setLineDash([]);
-      // If holding a tile, highlight unfilled as droppable
-      if(heldTile&&isHov){ctx.fillStyle='rgba(103,194,58,0.3)';ctx.fillRect(sx,sy,sw,sh);
-        ctx.strokeStyle='#67c23a';ctx.lineWidth=2;ctx.strokeRect(sx,sy,sw,sh)}
+      // Held tile hover: show how it fits
+      if(heldTile&&isHov&&hd){
+        const fits=hd.w<=t.w+0.125&&hd.h<=t.h+0.125;
+        const canCut=hd.w>=t.w-0.125&&hd.h>=t.h-0.125;
+        if(fits){
+          ctx.fillStyle='rgba(103,194,58,0.35)';ctx.fillRect(sx,sy,sw,sh);
+          ctx.strokeStyle='#67c23a';ctx.lineWidth=2.5;ctx.strokeRect(sx,sy,sw,sh);
+        }else if(canCut){
+          const fitW=Math.min(hd.w,t.w)*scale-inset*2,fitH=Math.min(hd.h,t.h)*scale-inset*2;
+          ctx.fillStyle='rgba(230,162,60,0.35)';ctx.fillRect(sx,sy,fitW>0?fitW:sw,fitH>0?fitH:sh);
+          ctx.strokeStyle='#e6a23c';ctx.lineWidth=2.5;ctx.strokeRect(sx,sy,fitW>0?fitW:sw,fitH>0?fitH:sh);
+          // Show offcut portions
+          if(hd.w>t.w+0.125){const offW=(hd.w-t.w)*scale;
+            ctx.fillStyle='rgba(103,194,58,0.15)';ctx.fillRect(sx+sw,sy,offW,sh);
+            ctx.strokeStyle='rgba(103,194,58,0.5)';ctx.lineWidth=1;ctx.setLineDash([3,2]);
+            ctx.strokeRect(sx+sw,sy,offW,sh);ctx.setLineDash([])}
+          if(hd.h>t.h+0.125){const offH=(hd.h-t.h)*scale;
+            ctx.fillStyle='rgba(103,194,58,0.15)';ctx.fillRect(sx,sy+sh,sw,offH);
+            ctx.strokeStyle='rgba(103,194,58,0.5)';ctx.lineWidth=1;ctx.setLineDash([3,2]);
+            ctx.strokeRect(sx,sy+sh,sw,offH);ctx.setLineDash([])}
+        }}
       continue}
     if(t.type==='full')ctx.strokeStyle=lt?'rgba(50,110,180,0.5)':'rgba(100,170,230,0.4)';
     else if(t.type==='cut')ctx.strokeStyle=lt?'rgba(190,130,30,0.5)':'rgba(240,180,80,0.4)';
     else ctx.strokeStyle=lt?'rgba(70,160,40,0.5)':'rgba(120,210,80,0.4)';
     ctx.lineWidth=Math.max(1,scale*.12);ctx.strokeRect(sx,sy,sw,sh);
-    // Hover: highlight border + X button
-    if(isHov){
+    // Hover: X button (only when not holding)
+    if(isHov&&!heldTile){
       ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=2;ctx.strokeRect(sx,sy,sw,sh);
-      // X button top-left
       const bsz=Math.min(16,Math.max(10,sw*0.2));
       ctx.fillStyle='rgba(220,50,50,0.85)';
       ctx.beginPath();ctx.roundRect(sx,sy,bsz,bsz,3);ctx.fill();
       ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
       const p=3;ctx.beginPath();ctx.moveTo(sx+p,sy+p);ctx.lineTo(sx+bsz-p,sy+bsz-p);ctx.stroke();
       ctx.beginPath();ctx.moveTo(sx+bsz-p,sy+p);ctx.lineTo(sx+p,sy+bsz-p);ctx.stroke()}
-    // Cut edges
     if(t.cutEdges){const ce=t.cutEdges;const fx=w2x(t.x),fy=w2y(t.y),fw=t.w*scale,fh=t.h*scale;
       ctx.strokeStyle='rgba(245,80,80,0.85)';ctx.lineWidth=Math.max(2,scale*.35);ctx.setLineDash([4,3]);
       if(ce.l){ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy+fh);ctx.stroke()}
@@ -393,7 +412,26 @@ function drawTiles(){
       if(ce.t){ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+fw,fy);ctx.stroke()}
       if(ce.b){ctx.beginPath();ctx.moveTo(fx,fy+fh);ctx.lineTo(fx+fw,fy+fh);ctx.stroke()}
       ctx.setLineDash([])}}}
-  // Room outlines on top
+  // Dragged tile ghost
+  if(dragTileInfo&&dragTileInfo.pos){
+    const t=simResults.rooms[dragTileInfo.ri].tiles[dragTileInfo.ti];
+    ctx.globalAlpha=0.5;ctx.fillStyle='rgba(74,144,217,0.5)';
+    ctx.fillRect(dragTileInfo.pos.x,dragTileInfo.pos.y,t.w*scale,t.h*scale);
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;
+    ctx.strokeRect(dragTileInfo.pos.x,dragTileInfo.pos.y,t.w*scale,t.h*scale);
+    ctx.globalAlpha=1}
+  // Held tile preview at cursor
+  if(heldTile&&hd){
+    const pw=hd.w*scale,ph=hd.h*scale;
+    const px=mouseScreen.x-pw/2,py=mouseScreen.y-ph/2;
+    ctx.strokeStyle='#67c23a';ctx.lineWidth=3;ctx.globalAlpha=0.7;
+    ctx.strokeRect(px,py,pw,ph);
+    ctx.fillStyle='rgba(103,194,58,0.15)';ctx.fillRect(px,py,pw,ph);
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#67c23a';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(`${hd.w}"×${hd.h}"`,px+pw/2,py+ph/2);
+    ctx.textAlign='start';ctx.textBaseline='alphabetic'}
+  // Room outlines
   for(const rm of rooms){
     if(!rm.closed||rm.verts.length<3)continue;
     const vs=rm.verts,n=vs.length;
@@ -568,25 +606,40 @@ function isOverXBtn(sx,sy,t){
 C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
   if(e.button===1||e.button===2){panning=true;panSX=sx;panSY=sy;panOX=ox;panOY=oy;C.style.cursor='grabbing';e.preventDefault();return}
   const isBM=simResults&&simResults.mode==='budget';
-  // Held tile placement: click unfilled to place
+  // Held tile placement
   if(isBM&&heldTile){
     const ht=hitTile(sx,sy);
     if(ht){const t=simResults.rooms[ht.ri].tiles[ht.ti];
-      if(t.type==='unfilled'){t.type=heldTile.tile.type;t.cutEdges=heldTile.tile.cutEdges;t._reallocated=true;
-        toolbox.splice(heldTile._idx,1);
-        heldTile=null;updateToolbox();renderStats();qr();return}}
-    // Click empty = cancel
-    heldTile=null;updateToolbox();qr();return}
-  // Budget mode tile interactions
+      if(t.type==='unfilled'){
+        const hd=heldDims();
+        const TOL=0.125;
+        const fits=hd.w<=t.w+TOL&&hd.h<=t.h+TOL;
+        const canCut=hd.w>=t.w-TOL&&hd.h>=t.h-TOL;
+        if(fits){
+          t.type=heldTile.tile.type;t.cutEdges=heldTile.tile.cutEdges;t._reallocated=true;
+          toolbox.splice(heldTile._idx,1);heldTile=null;
+        }else if(canCut){
+          // Cut to fit — place the needed portion, remainder to toolbox
+          t.type='cut';t.cutEdges={l:false,t:false,r:hd.w>t.w+TOL,b:hd.h>t.h+TOL};t._reallocated=true;
+          const remW=hd.w-t.w,remH=hd.h-t.h;
+          toolbox.splice(heldTile._idx,1);
+          if(remW>1&&t.h>1)toolbox.push({tile:{w:remW,h:t.h,type:'cut',cutEdges:{l:true,t:false,r:false,b:false}}});
+          if(remH>1&&hd.w>1)toolbox.push({tile:{w:hd.w,h:remH,type:'cut',cutEdges:{l:false,t:true,r:false,b:false}}});
+          heldTile=null;consolidateToolbox();
+        }
+        heldRotated=false;updateToolbox();renderStats();qr();return}}
+    heldTile=null;heldRotated=false;updateToolbox();qr();return}
+  // Budget mode: X button or start drag
   if(isBM&&hoverTile){
     const t=simResults.rooms[hoverTile.ri].tiles[hoverTile.ti];
     if(t.type!=='unfilled'&&t.type!=='removed'){
-      // Only X button removes tile
       if(isOverXBtn(sx,sy,t)){
         toolbox.push({tile:{...t}});
         t._origType=t.type;t.type='removed';
         hoverTile=null;consolidateToolbox();updateToolbox();renderStats();qr();return}
-    }}
+      // Start drag
+      dragTileInfo={ri:hoverTile.ri,ti:hoverTile.ti,offX:sx-w2x(t.x),offY:sy-w2y(t.y),pos:null};
+      mdPos={x:sx,y:sy};didDrag=false;return}}
   hideWallInput();mdPos={x:sx,y:sy};didDrag=false;
   mdVert=hitVertex(sx,sy);if(mdVert>=0){mdWall=-1;return}
   mdWall=hitWall(sx,sy);if(mdWall>=0)return;
@@ -598,8 +651,15 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
     alignGuides=[];simResults=null;updateModeTag();qr()}});
 
 C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;const rwx=s2wx(sx),rwy=s2wy(sy);
+  mouseScreen={x:sx,y:sy};
   $('coords').textContent=`${fmtIn(rwx)} , ${fmtIn(rwy)}`;
   if(panning){ox=panOX+(sx-panSX);oy=panOY+(sy-panSY);qr();return}
+  // Tile drag
+  if(dragTileInfo){
+    const dx=sx-mdPos.x,dy=sy-mdPos.y;
+    if(!dragTileInfo.pos&&dx*dx+dy*dy>DT*DT){dragTileInfo.pos={x:0,y:0}}
+    if(dragTileInfo.pos){dragTileInfo.pos={x:sx-dragTileInfo.offX,y:sy-dragTileInfo.offY};
+      hoverTile=hitTile(sx,sy);C.style.cursor='grabbing';qr();return}}
   if(mdVert>=0&&mdPos&&!didDrag){const dx=sx-mdPos.x,dy=sy-mdPos.y;if(dx*dx+dy*dy>DT*DT){didDrag=true;dragVert=mdVert;if(shouldSnap())beginCD(mdVert);else dragWallOrients=null}}
   if(dragVert>=0){const as=alignSnap(rwx,rwy,dragVert);R().verts[dragVert].x=as.x;R().verts[dragVert].y=as.y;
     if(shouldSnap()&&dragWallOrients)applyCD(dragVert);simResults=null;C.style.cursor='grabbing';qr();return}
@@ -610,20 +670,31 @@ C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;const rwx=s2w
   if(isBM&&hoverVert<0&&hoverWall<0){
     const ht=hitTile(sx,sy);
     const changed=ht===null?hoverTile!==null:(hoverTile===null||ht.ri!==hoverTile.ri||ht.ti!==hoverTile.ti);
-    if(changed){hoverTile=ht;qr()}
-  }else if(hoverTile){hoverTile=null;qr()}
-  if(heldTile)C.style.cursor='copy';
+    if(changed){hoverTile=ht}
+  }else if(hoverTile){hoverTile=null}
+  if(heldTile)C.style.cursor='none';
   else if(hoverVert>=0)C.style.cursor='grab';
   else if(hoverWall>=0)C.style.cursor='pointer';
   else if(isBM&&hoverTile){
     const t=simResults.rooms[hoverTile.ri].tiles[hoverTile.ti];
-    if(t.type!=='unfilled'&&t.type!=='removed')C.style.cursor=isOverXBtn(sx,sy,t)?'pointer':'default';
+    if(t.type!=='unfilled'&&t.type!=='removed')C.style.cursor=isOverXBtn(sx,sy,t)?'pointer':'grab';
     else C.style.cursor='default';
   }else C.style.cursor=drawFrom>=0&&!rm.closed?'crosshair':'default';
   qr()});
 
 C.addEventListener('mouseup',e=>{
   if(panning){panning=false;C.style.cursor=drawFrom>=0&&!R().closed?'crosshair':'default';return}
+  // Drop dragged tile
+  if(dragTileInfo){
+    if(dragTileInfo.pos){
+      const drop=hitTile(e.clientX,e.clientY);
+      const srcT=simResults.rooms[dragTileInfo.ri].tiles[dragTileInfo.ti];
+      if(drop&&!(drop.ri===dragTileInfo.ri&&drop.ti===dragTileInfo.ti)){
+        const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
+        if(dstT.type==='unfilled'){
+          dstT.type=srcT.type;dstT.cutEdges=srcT.cutEdges;dstT._reallocated=true;
+          srcT._origType=srcT.type;srcT.type='removed';renderStats()}}}
+    dragTileInfo=null;C.style.cursor='default';mdPos=null;qr();return}
   if(dragVert>=0){dragVert=-1;dragWallOrients=null;alignGuides=[];C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
   const sx=e.clientX,rm=R(),vs=rm.verts;
   if(mdVert>=0&&!didDrag){
@@ -648,8 +719,10 @@ document.addEventListener('keydown',e=>{
       if(!vs.length)drawFrom=-1;else if(drawFrom===0)drawFrom=0;else drawFrom=vs.length-1;
       simResults=null;updateModeTag();qr()}
     else if(rm.closed&&hoverVert>=0&&vs.length>3){vs.splice(hoverVert,1);hoverVert=-1;simResults=null;qr()}}
+  if(e.key==='r'||e.key==='R'){
+    if(heldTile){heldRotated=!heldRotated;qr();return}}
   if(e.key==='Escape'){
-    if(heldTile){heldTile=null;updateToolbox();qr();return}
+    if(heldTile){heldTile=null;heldRotated=false;updateToolbox();qr();return}
     if(selWall>=0){selWall=-1;hideWallInput()}
     else if(drawFrom>=0&&!rm.closed){drawFrom=-1;ghostSnap=null}
     else if(!rm.closed&&vs.length>0){rm.verts=[];rooms[activeRoom].verts=[];drawFrom=-1;ghostSnap=null}
