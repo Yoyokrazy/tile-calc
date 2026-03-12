@@ -333,15 +333,23 @@ function drawRoom(){
 
 function drawTiles(){
   if(!simulated)return;
+  const lt=isLight();
   for(const t of tiles){
-    ctx.fillStyle=t.type==='full'?'rgba(74,144,217,0.45)':t.type==='cut'?'rgba(230,162,60,0.45)':'rgba(103,194,58,0.45)';
     const sx=w2x(t.x),sy=w2y(t.y),sw=t.w*scale,sh=t.h*scale;
+    // Fill
+    if(t.type==='full') ctx.fillStyle=lt?'rgba(74,144,217,0.3)':'rgba(74,144,217,0.45)';
+    else if(t.type==='cut') ctx.fillStyle=lt?'rgba(230,162,60,0.3)':'rgba(230,162,60,0.45)';
+    else ctx.fillStyle=lt?'rgba(103,194,58,0.3)':'rgba(103,194,58,0.45)';
     ctx.fillRect(sx,sy,sw,sh);
-    ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=0.5;
-    ctx.strokeRect(sx,sy,sw,sh);
-    // Draw cut edges as dashed red lines (flat side needing endcap)
+    // Tile outline — clear visible border
+    if(t.type==='full') ctx.strokeStyle=lt?'rgba(50,110,180,0.6)':'rgba(100,170,230,0.5)';
+    else if(t.type==='cut') ctx.strokeStyle=lt?'rgba(190,130,30,0.6)':'rgba(240,180,80,0.5)';
+    else ctx.strokeStyle=lt?'rgba(70,160,40,0.6)':'rgba(120,210,80,0.5)';
+    ctx.lineWidth=Math.max(1,scale*0.15);
+    ctx.strokeRect(sx+0.5,sy+0.5,sw-1,sh-1);
+    // Cut edges — dashed red lines
     if(t.cutEdges){const ce=t.cutEdges;
-      ctx.strokeStyle='rgba(245,108,108,0.8)';ctx.lineWidth=Math.max(1.5,scale*0.3);ctx.setLineDash([3,3]);
+      ctx.strokeStyle='rgba(245,80,80,0.85)';ctx.lineWidth=Math.max(2,scale*0.35);ctx.setLineDash([4,3]);
       if(ce.l){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx,sy+sh);ctx.stroke()}
       if(ce.r){ctx.beginPath();ctx.moveTo(sx+sw,sy);ctx.lineTo(sx+sw,sy+sh);ctx.stroke()}
       if(ce.t){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+sw,sy);ctx.stroke()}
