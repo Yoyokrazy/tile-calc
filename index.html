@@ -10,24 +10,25 @@ body{overflow:hidden;background:#111;font-family:system-ui,sans-serif;color:#ddd
 canvas{display:block}
 #toolbar{position:fixed;top:12px;left:12px;display:flex;gap:8px;align-items:center;
   background:rgba(20,20,30,0.92);border:1px solid #333;border-radius:8px;padding:6px 12px;
-  backdrop-filter:blur(8px);z-index:10;flex-wrap:wrap;max-width:calc(100vw - 320px)}
+  backdrop-filter:blur(8px);z-index:10;flex-wrap:wrap;max-width:calc(100vw - 280px)}
 #toolbar label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.3px}
 #toolbar input,#toolbar select{background:#1a1a2a;color:#ddd;border:1px solid #333;
   border-radius:4px;padding:3px 6px;font-size:13px;width:52px}
-#toolbar select{width:auto}
+#toolbar select{width:auto;max-width:130px}
 #toolbar .sep{width:1px;height:20px;background:#333}
 button{background:#e94560;color:#fff;border:none;border-radius:5px;padding:5px 12px;
   font-size:12px;font-weight:600;cursor:pointer}
 button:hover{opacity:.85}
 button.sec{background:#333}
-button.snap-on{background:#e94560 !important;border-color:#e94560 !important}
-#modeTag{font-size:12px;font-weight:600;color:#e94560;min-width:60px}
+button.snap-on{background:#e94560 !important}
+#modeTag{font-size:12px;font-weight:600;color:#e94560;min-width:50px}
 #coords{position:fixed;bottom:12px;left:12px;font-size:12px;color:#666;
   background:rgba(20,20,30,.85);padding:4px 10px;border-radius:4px;z-index:10}
 #stats{position:fixed;top:12px;right:12px;width:240px;background:rgba(20,20,30,0.92);
   border:1px solid #333;border-radius:8px;padding:12px;backdrop-filter:blur(8px);
-  z-index:10;display:none}
-#stats h3{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+  z-index:10;display:none;max-height:calc(100vh - 24px);overflow-y:auto}
+#stats h3{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+#stats h3.mt{margin-top:12px}
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .st{background:#1a1a2a;border-radius:6px;padding:8px}
 .st .v{font-size:18px;font-weight:700}
@@ -46,6 +47,15 @@ button.snap-on{background:#e94560 !important;border-color:#e94560 !important}
   background:rgba(20,20,30,.85);padding:8px 12px;border-radius:6px;z-index:10;
   line-height:1.7;max-width:280px}
 #help kbd{background:#1a1a2a;border:1px solid #333;border-radius:2px;padding:0 3px;font-family:inherit}
+#saveOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:25}
+#saveDialog{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(20,20,30,.98);border:1px solid #444;border-radius:10px;padding:20px;
+  z-index:30;min-width:280px}
+#saveDialog h3{font-size:14px;margin-bottom:12px}
+#saveDialog input{width:100%;background:#1a1a2a;border:1px solid #444;border-radius:5px;
+  padding:8px 10px;color:#ddd;font-size:14px;outline:none}
+#saveDialog input:focus{border-color:#e94560}
+#saveDialog .btns{display:flex;gap:8px;margin-top:12px}
 </style>
 </head>
 <body>
@@ -55,7 +65,7 @@ button.snap-on{background:#e94560 !important;border-color:#e94560 !important}
 <div id="toolbar">
   <span id="modeTag">DRAW</span>
   <div class="sep"></div>
-  <button id="snapBtn" class="snap-on" onclick="toggleSnap()">⊾ 90° Snap</button>
+  <button id="snapBtn" class="snap-on" onclick="toggleSnap()">⊾ 90°</button>
   <div class="sep"></div>
   <label>Tile</label>
   <input id="tileW" type="number" value="24" min="1" max="120" step="1">
@@ -63,16 +73,17 @@ button.snap-on{background:#e94560 !important;border-color:#e94560 !important}
   <input id="tileH" type="number" value="24" min="1" max="120" step="1">
   <span style="font-size:11px;color:#666">in</span>
   <div class="sep"></div>
-  <label>Gap</label>
-  <input id="gap" type="number" value="0.125" min="0" max="2" step="0.0625" style="width:58px">
-  <div class="sep"></div>
-  <select id="pattern">
-    <option value="grid">Grid</option>
-    <option value="brick">½ Brick</option>
-    <option value="third">⅓ Brick</option>
-  </select>
+  <label>Tab</label>
+  <input id="tab" type="number" value="0.25" min="0" max="2" step="0.0625" style="width:56px">
+  <span style="font-size:11px;color:#666">in</span>
   <div class="sep"></div>
   <button onclick="simulate()">Simulate</button>
+  <button class="sec" onclick="openSaveDialog()">💾</button>
+  <select id="savedRooms" onchange="loadRoom()">
+    <option value="">Load…</option>
+  </select>
+  <button class="sec" onclick="deleteRoom()" title="Delete saved room">🗑</button>
+  <div class="sep"></div>
   <button class="sec" onclick="clearAll()">Clear</button>
   <button class="sec" onclick="resetView()">Fit</button>
 </div>
@@ -80,15 +91,24 @@ button.snap-on{background:#e94560 !important;border-color:#e94560 !important}
 <div id="coords">0" , 0"</div>
 
 <div id="stats">
-  <h3>Results</h3>
+  <h3>Tiles</h3>
   <div class="sg">
     <div class="st hl fw"><div class="v" id="sToBuy">—</div><div class="l">Tiles to buy</div></div>
-    <div class="st"><div class="v" id="sFull">—</div><div class="l">Full tiles</div></div>
-    <div class="st"><div class="v" id="sCut">—</div><div class="l">Cut tiles</div></div>
+    <div class="st"><div class="v" id="sFull">—</div><div class="l">Full tiles placed</div></div>
+    <div class="st"><div class="v" id="sCut">—</div><div class="l">Cut tiles (new)</div></div>
     <div class="st"><div class="v" id="sReused">—</div><div class="l">Offcuts reused</div></div>
-    <div class="st"><div class="v" id="sWaste">—</div><div class="l">Waste %</div></div>
+    <div class="st"><div class="v" id="sWaste">—</div><div class="l">Waste</div></div>
+  </div>
+  <h3 class="mt">Border Pieces</h3>
+  <div class="sg">
+    <div class="st hl fw"><div class="v" id="sEdge">—</div><div class="l">Edge strips</div></div>
+    <div class="st"><div class="v" id="sOutC">—</div><div class="l">Outside corners</div></div>
+    <div class="st"><div class="v" id="sInC">—</div><div class="l">Inside corners</div></div>
+  </div>
+  <h3 class="mt">Room</h3>
+  <div class="sg">
     <div class="st"><div class="v" id="sRoom">—</div><div class="l">Room ft²</div></div>
-    <div class="st"><div class="v" id="sTile">—</div><div class="l">Tile ft²</div></div>
+    <div class="st"><div class="v" id="sPerim">—</div><div class="l">Perimeter</div></div>
   </div>
   <div class="legend">
     <div class="legend-i"><div class="legend-s" style="background:#4a90d9"></div>Full tile</div>
@@ -102,11 +122,21 @@ button.snap-on{background:#e94560 !important;border-color:#e94560 !important}
   <div class="hint">inches or 5'6" · Enter to set</div>
 </div>
 
+<div id="saveOverlay" onclick="closeSaveDialog()"></div>
+<div id="saveDialog">
+  <h3>Save Room</h3>
+  <input id="saveName" type="text" placeholder="e.g. Living Room" autocomplete="off">
+  <div class="btns">
+    <button onclick="confirmSave()">Save</button>
+    <button class="sec" onclick="closeSaveDialog()">Cancel</button>
+  </div>
+</div>
+
 <div id="help">
   <kbd>Click</kbd> place vertex · <kbd>⊾ 90°</kbd> forces H/V<br>
-  <kbd>Esc</kbd> pause · click either end vertex to resume<br>
-  Click the <em>other</em> end vertex to close room<br>
-  <kbd>Hold+drag</kbd> vertex to move (neighbors adjust in 90°)<br>
+  <kbd>Esc</kbd> pause · click either end to resume<br>
+  Click the <em>other</em> end to close room<br>
+  <kbd>Hold+drag</kbd> vertex (neighbors adjust in 90°)<br>
   <kbd>Click wall</kbd> type length · <kbd>Dbl-click</kbd> add vertex<br>
   <kbd>Right-drag</kbd> pan · <kbd>Scroll</kbd> zoom · <kbd>Del</kbd> remove
 </div>
@@ -118,19 +148,17 @@ const C = $('c'), ctx = C.getContext('2d');
 // ===== STATE =====
 let verts = [];
 let closed = false;
-let drawFrom = -1; // -1=paused, 0=prepending, last=appending
+let drawFrom = -1;
 let scale = 4;
 let ox = 100, oy = 100;
 
-let snapMode = true; // 90° lock always on by default
+let snapMode = true;
 let hoverVert = -1, hoverWall = -1;
 let selWall = -1;
-let dragVert = -1;
-let dragWallOrients = null; // {prev:'h'|'v'|null, next:'h'|'v'|null}
+let dragVert = -1, dragWallOrients = null;
 let panning = false, panSX = 0, panSY = 0, panOX = 0, panOY = 0;
 let ctrlDown = false;
 let ghostSnap = null;
-
 let mdPos = null, mdVert = -1, mdWall = -1, didDrag = false;
 let tiles = [], simulated = false;
 
@@ -141,17 +169,22 @@ function w2x(wx) { return wx * scale + ox; }
 function w2y(wy) { return wy * scale + oy; }
 function s2wx(sx) { return (sx - ox) / scale; }
 function s2wy(sy) { return (sy - oy) / scale; }
-function snap(v) { return Math.round(v); }
+function snp(v) { return Math.round(v); }
 function distV(a, b) { return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2); }
 
 function fmtIn(inches) {
   const a = Math.abs(inches);
-  const ft = Math.floor(a / 12);
-  const rem = a % 12;
-  const sign = inches < 0 ? '-' : '';
-  if (ft === 0) return sign + (rem % 1 ? rem.toFixed(1) : Math.round(rem)) + '"';
-  if (rem < 0.05) return sign + ft + "'";
-  return sign + ft + "' " + (rem % 1 ? rem.toFixed(1) : Math.round(rem)) + '"';
+  const ft = Math.floor(a / 12), rem = a % 12;
+  const s = inches < 0 ? '-' : '';
+  if (ft === 0) return s + (rem % 1 ? rem.toFixed(1) : Math.round(rem)) + '"';
+  if (rem < 0.05) return s + ft + "'";
+  return s + ft + "' " + (rem % 1 ? rem.toFixed(1) : Math.round(rem)) + '"';
+}
+
+function fmtFtIn(inches) {
+  const ft = Math.floor(inches / 12), rem = inches % 12;
+  if (rem < 0.05) return ft + ' ft';
+  return ft + "'" + Math.round(rem) + '"';
 }
 
 function parseLen(s) {
@@ -162,29 +195,19 @@ function parseLen(s) {
   if (m) return parseFloat(m[1]);
   m = s.match(/^(\d+\.?\d*)\s*'$/);
   if (m) return parseFloat(m[1]) * 12;
-  const n = parseFloat(s);
-  return isNaN(n) ? null : n;
+  const n = parseFloat(s); return isNaN(n) ? null : n;
 }
 
-function constrainHV(wx, wy, fromVert) {
-  if (!shouldSnap() || !fromVert) return { x: snap(wx), y: snap(wy) };
-  const sx = snap(wx), sy = snap(wy);
-  if (Math.abs(sx - fromVert.x) >= Math.abs(sy - fromVert.y))
-    return { x: sx, y: fromVert.y };
-  return { x: fromVert.x, y: sy };
+function constrainHV(wx, wy, from) {
+  if (!shouldSnap() || !from) return { x: snp(wx), y: snp(wy) };
+  const sx = snp(wx), sy = snp(wy);
+  return Math.abs(sx - from.x) >= Math.abs(sy - from.y)
+    ? { x: sx, y: from.y } : { x: from.x, y: sy };
 }
 
-function wallOrient(a, b) {
-  return Math.abs(a.x - b.x) >= Math.abs(a.y - b.y) ? 'h' : 'v';
-}
-
-function closeTarget() {
-  return drawFrom === 0 ? verts.length - 1 : 0;
-}
-
-function isEndVertex(i) {
-  return i === 0 || i === verts.length - 1;
-}
+function wallOrient(a, b) { return Math.abs(a.x - b.x) >= Math.abs(a.y - b.y) ? 'h' : 'v'; }
+function closeTarget() { return drawFrom === 0 ? verts.length - 1 : 0; }
+function isEndVertex(i) { return i === 0 || i === verts.length - 1; }
 
 function updateModeTag() {
   if (closed) $('modeTag').textContent = 'EDIT';
@@ -194,577 +217,335 @@ function updateModeTag() {
 
 function toggleSnap() {
   snapMode = !snapMode;
-  const btn = $('snapBtn');
-  btn.classList.toggle('snap-on', snapMode);
-  if (!snapMode) btn.style.background = '#333';
-  else btn.style.background = '';
+  $('snapBtn').classList.toggle('snap-on', snapMode);
+  $('snapBtn').style.background = snapMode ? '' : '#333';
 }
 
 // ===== GRID =====
 function drawGrid() {
   const W = C.width, H = C.height;
   const wx0 = s2wx(0), wx1 = s2wx(W), wy0 = s2wy(0), wy1 = s2wy(H);
-  const spacings = [1, 2, 3, 6, 12, 24, 60, 120, 240, 600];
+  const spacings = [1,2,3,6,12,24,60,120,240,600];
   let minor = 12;
   for (const sp of spacings) { if (sp * scale >= 20) { minor = sp; break; } }
   const major = minor < 12 ? 12 : (minor <= 12 ? 60 : minor * 5);
-
   ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
-  let s = Math.floor(wx0 / minor) * minor;
-  for (let x = s; x <= wx1; x += minor) { const sx = w2x(x); ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,H); ctx.stroke(); }
-  s = Math.floor(wy0 / minor) * minor;
-  for (let y = s; y <= wy1; y += minor) { const sy = w2y(y); ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke(); }
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
-  s = Math.floor(wx0 / major) * major;
-  for (let x = s; x <= wx1; x += major) { const sx = w2x(x); ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,H); ctx.stroke(); }
-  s = Math.floor(wy0 / major) * major;
-  for (let y = s; y <= wy1; y += major) { const sy = w2y(y); ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke(); }
-
-  ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = '10px system-ui';
-  ctx.textBaseline = 'top';
-  s = Math.floor(wx0 / major) * major;
-  for (let x = s; x <= wx1; x += major) ctx.fillText(fmtIn(x), w2x(x) + 3, 4);
-  ctx.textBaseline = 'middle';
-  s = Math.floor(wy0 / major) * major;
-  for (let y = s; y <= wy1; y += major) { if (y === 0) continue; ctx.fillText(fmtIn(y), 4, w2y(y)); }
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.5;
-  const osx = w2x(0), osy = w2y(0);
-  if (osx >= 0 && osx <= W) { ctx.beginPath(); ctx.moveTo(osx,0); ctx.lineTo(osx,H); ctx.stroke(); }
-  if (osy >= 0 && osy <= H) { ctx.beginPath(); ctx.moveTo(0,osy); ctx.lineTo(W,osy); ctx.stroke(); }
+  let s = Math.floor(wx0/minor)*minor;
+  for (let x=s;x<=wx1;x+=minor){const sx=w2x(x);ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke()}
+  s=Math.floor(wy0/minor)*minor;
+  for(let y=s;y<=wy1;y+=minor){const sy=w2y(y);ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke()}
+  ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;
+  s=Math.floor(wx0/major)*major;
+  for(let x=s;x<=wx1;x+=major){const sx=w2x(x);ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke()}
+  s=Math.floor(wy0/major)*major;
+  for(let y=s;y<=wy1;y+=major){const sy=w2y(y);ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke()}
+  ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font='10px system-ui';
+  ctx.textBaseline='top';s=Math.floor(wx0/major)*major;
+  for(let x=s;x<=wx1;x+=major)ctx.fillText(fmtIn(x),w2x(x)+3,4);
+  ctx.textBaseline='middle';s=Math.floor(wy0/major)*major;
+  for(let y=s;y<=wy1;y+=major){if(y===0)continue;ctx.fillText(fmtIn(y),4,w2y(y))}
+  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+  const osx=w2x(0),osy=w2y(0);
+  if(osx>=0&&osx<=W){ctx.beginPath();ctx.moveTo(osx,0);ctx.lineTo(osx,H);ctx.stroke()}
+  if(osy>=0&&osy<=H){ctx.beginPath();ctx.moveTo(0,osy);ctx.lineTo(W,osy);ctx.stroke()}
 }
 
 // ===== MEASUREMENT PILLS =====
-function drawMeasurement(ax, ay, bx, by, wallIdx) {
-  const len = Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
-  if (len < 1) return;
-  const sx1 = w2x(ax), sy1 = w2y(ay), sx2 = w2x(bx), sy2 = w2y(by);
-  const mx = (sx1 + sx2) / 2, my = (sy1 + sy2) / 2;
-  const isHoriz = Math.abs(bx - ax) > Math.abs(by - ay);
-  const isSel = wallIdx === selWall;
-  const text = fmtIn(len);
-  const fontSize = Math.max(12, Math.min(15, scale * 3.5));
-  ctx.font = `700 ${fontSize}px system-ui`;
-  const tw = ctx.measureText(text).width;
-  const pw = tw + 14, ph = fontSize + 10;
-  const offX = isHoriz ? 0 : -(pw / 2 + 10);
-  const offY = isHoriz ? -(ph / 2 + 10) : 0;
-  const px = mx + offX - pw / 2, py = my + offY - ph / 2;
-  ctx.fillStyle = isSel ? 'rgba(233,69,96,0.95)' : 'rgba(15,15,25,0.9)';
-  ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 5); ctx.fill();
-  ctx.strokeStyle = isSel ? '#e94560' : 'rgba(255,255,255,0.35)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 5); ctx.stroke();
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(text, mx + offX, my + offY);
-  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+function drawMeasurement(ax,ay,bx,by,wallIdx){
+  const len=Math.sqrt((bx-ax)**2+(by-ay)**2);if(len<1)return;
+  const sx1=w2x(ax),sy1=w2y(ay),sx2=w2x(bx),sy2=w2y(by);
+  const mx=(sx1+sx2)/2,my=(sy1+sy2)/2;
+  const isH=Math.abs(bx-ax)>Math.abs(by-ay),isSel=wallIdx===selWall;
+  const text=fmtIn(len);
+  const fs=Math.max(12,Math.min(15,scale*3.5));
+  ctx.font=`700 ${fs}px system-ui`;
+  const tw=ctx.measureText(text).width,pw=tw+14,ph=fs+10;
+  const offX=isH?0:-(pw/2+10),offY=isH?-(ph/2+10):0;
+  const px=mx+offX-pw/2,py=my+offY-ph/2;
+  ctx.fillStyle=isSel?'rgba(233,69,96,0.95)':'rgba(15,15,25,0.9)';
+  ctx.beginPath();ctx.roundRect(px,py,pw,ph,5);ctx.fill();
+  ctx.strokeStyle=isSel?'#e94560':'rgba(255,255,255,0.35)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(px,py,pw,ph,5);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(text,mx+offX,my+offY);
+  ctx.textAlign='start';ctx.textBaseline='alphabetic';
 }
 
 // ===== ROOM RENDERING =====
-function drawRoom() {
-  if (verts.length === 0) return;
-  const n = verts.length;
+function drawRoom(){
+  if(!verts.length)return;const n=verts.length;
+  if(closed){ctx.fillStyle='rgba(40,60,90,0.35)';ctx.beginPath();
+    ctx.moveTo(w2x(verts[0].x),w2y(verts[0].y));
+    for(let i=1;i<n;i++)ctx.lineTo(w2x(verts[i].x),w2y(verts[i].y));
+    ctx.closePath();ctx.fill()}
+  const wc=closed?n:n-1;
+  for(let i=0;i<wc;i++){const a=verts[i],b=verts[(i+1)%n];
+    const sel=i===selWall,hov=i===hoverWall;
+    ctx.strokeStyle=sel?'#e94560':hov?'#fff':'rgba(255,255,255,0.7)';
+    ctx.lineWidth=sel?3:hov?2.5:1.5;
+    ctx.beginPath();ctx.moveTo(w2x(a.x),w2y(a.y));ctx.lineTo(w2x(b.x),w2y(b.y));ctx.stroke()}
+  for(let i=0;i<wc;i++){const a=verts[i],b=verts[(i+1)%n];drawMeasurement(a.x,a.y,b.x,b.y,i)}
 
-  if (closed) {
-    ctx.fillStyle = 'rgba(40, 60, 90, 0.35)';
-    ctx.beginPath();
-    ctx.moveTo(w2x(verts[0].x), w2y(verts[0].y));
-    for (let i = 1; i < n; i++) ctx.lineTo(w2x(verts[i].x), w2y(verts[i].y));
-    ctx.closePath(); ctx.fill();
-  }
+  if(drawFrom>=0&&!closed&&ghostSnap){
+    const from=verts[drawFrom];
+    ctx.strokeStyle='rgba(233,69,96,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.moveTo(w2x(from.x),w2y(from.y));
+    ctx.lineTo(w2x(ghostSnap.x),w2y(ghostSnap.y));ctx.stroke();ctx.setLineDash([]);
+    const gl=distV(from,ghostSnap);
+    if(gl>0){const gmx=(w2x(from.x)+w2x(ghostSnap.x))/2,gmy=(w2y(from.y)+w2y(ghostSnap.y))/2;
+      const text=fmtIn(gl);ctx.font='700 13px system-ui';
+      const tw2=ctx.measureText(text).width,pw2=tw2+12,ph2=21;
+      ctx.fillStyle='rgba(233,69,96,0.85)';ctx.beginPath();ctx.roundRect(gmx-pw2/2,gmy-ph2-6,pw2,ph2,4);ctx.fill();
+      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(text,gmx,gmy-ph2/2-6);ctx.textAlign='start';ctx.textBaseline='alphabetic'}}
 
-  const wallCount = closed ? n : n - 1;
-  for (let i = 0; i < wallCount; i++) {
-    const a = verts[i], b = verts[(i + 1) % n];
-    const sel = i === selWall, hov = i === hoverWall;
-    ctx.strokeStyle = sel ? '#e94560' : hov ? '#fff' : 'rgba(255,255,255,0.7)';
-    ctx.lineWidth = sel ? 3 : hov ? 2.5 : 1.5;
-    ctx.beginPath(); ctx.moveTo(w2x(a.x), w2y(a.y)); ctx.lineTo(w2x(b.x), w2y(b.y)); ctx.stroke();
-  }
+  const ct=(!closed&&drawFrom>=0&&n>2)?closeTarget():-1;
+  for(let i=0;i<n;i++){const v=verts[i],sx=w2x(v.x),sy=w2y(v.y);
+    const isH2=i===hoverVert,isCl=i===ct,isAct=i===drawFrom&&!closed;
+    const r=isH2?7:(isAct||isCl)?6:4;
+    ctx.fillStyle=isCl?'#e94560':isAct?'#4a90d9':isH2?'#fff':'#ccc';
+    ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();
+    if(isCl&&isH2){ctx.strokeStyle='#e94560';ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke()}
+    if(isAct){ctx.strokeStyle='#4a90d9';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,9,0,Math.PI*2);ctx.stroke()}}
 
-  for (let i = 0; i < wallCount; i++) {
-    const a = verts[i], b = verts[(i + 1) % n];
-    drawMeasurement(a.x, a.y, b.x, b.y, i);
-  }
-
-  // Ghost line
-  if (drawFrom >= 0 && !closed && ghostSnap) {
-    const from = verts[drawFrom];
-    ctx.strokeStyle = 'rgba(233,69,96,0.5)'; ctx.lineWidth = 1.5;
-    ctx.setLineDash([6, 4]);
-    ctx.beginPath(); ctx.moveTo(w2x(from.x), w2y(from.y));
-    ctx.lineTo(w2x(ghostSnap.x), w2y(ghostSnap.y)); ctx.stroke();
-    ctx.setLineDash([]);
-    const gl = distV(from, ghostSnap);
-    if (gl > 0) {
-      const gmx = (w2x(from.x) + w2x(ghostSnap.x)) / 2;
-      const gmy = (w2y(from.y) + w2y(ghostSnap.y)) / 2;
-      const text = fmtIn(gl);
-      ctx.font = '700 13px system-ui';
-      const tw = ctx.measureText(text).width;
-      const pw = tw + 12, ph = 21;
-      ctx.fillStyle = 'rgba(233,69,96,0.85)';
-      ctx.beginPath(); ctx.roundRect(gmx - pw/2, gmy - ph - 6, pw, ph, 4); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(text, gmx, gmy - ph/2 - 6);
-      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
-    }
-  }
-
-  // Vertices
-  const ct = (!closed && drawFrom >= 0 && n > 2) ? closeTarget() : -1;
-  for (let i = 0; i < n; i++) {
-    const v = verts[i], sx = w2x(v.x), sy = w2y(v.y);
-    const isHov = i === hoverVert;
-    const isClose = i === ct;
-    const isActive = i === drawFrom && !closed;
-    const r = isHov ? 7 : (isActive || isClose) ? 6 : 4;
-
-    ctx.fillStyle = isClose ? '#e94560' : isActive ? '#4a90d9' : isHov ? '#fff' : '#ccc';
-    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
-
-    if (isClose && isHov) {
-      ctx.strokeStyle = '#e94560'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(sx, sy, 12, 0, Math.PI * 2); ctx.stroke();
-    }
-    if (isActive) {
-      ctx.strokeStyle = '#4a90d9'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(sx, sy, 9, 0, Math.PI * 2); ctx.stroke();
-    }
-  }
-
-  // Snap crosshair
-  if (drawFrom >= 0 && !closed && ghostSnap) {
-    const gx = w2x(ghostSnap.x), gy = w2y(ghostSnap.y);
-    ctx.strokeStyle = 'rgba(233,69,96,0.4)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(gx-8, gy); ctx.lineTo(gx+8, gy); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(gx, gy-8); ctx.lineTo(gx, gy+8); ctx.stroke();
-  }
+  if(drawFrom>=0&&!closed&&ghostSnap){const gx=w2x(ghostSnap.x),gy=w2y(ghostSnap.y);
+    ctx.strokeStyle='rgba(233,69,96,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(gx-8,gy);ctx.lineTo(gx+8,gy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(gx,gy-8);ctx.lineTo(gx,gy+8);ctx.stroke()}
 }
 
-// ===== TILES =====
-function drawTiles() {
-  if (!simulated) return;
-  for (const t of tiles) {
-    let color;
-    if (t.type === 'full') color = 'rgba(74, 144, 217, 0.45)';
-    else if (t.type === 'cut') color = 'rgba(230, 162, 60, 0.45)';
-    else color = 'rgba(103, 194, 58, 0.45)';
-    ctx.fillStyle = color;
-    ctx.fillRect(w2x(t.x), w2y(t.y), t.w * scale, t.h * scale);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 0.5;
-    ctx.strokeRect(w2x(t.x), w2y(t.y), t.w * scale, t.h * scale);
-  }
+function drawTiles(){
+  if(!simulated)return;
+  for(const t of tiles){
+    ctx.fillStyle=t.type==='full'?'rgba(74,144,217,0.45)':t.type==='cut'?'rgba(230,162,60,0.45)':'rgba(103,194,58,0.45)';
+    ctx.fillRect(w2x(t.x),w2y(t.y),t.w*scale,t.h*scale);
+    ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=0.5;
+    ctx.strokeRect(w2x(t.x),w2y(t.y),t.w*scale,t.h*scale)}
 }
 
-// ===== RENDER =====
-function render() {
-  C.width = window.innerWidth; C.height = window.innerHeight;
-  ctx.clearRect(0, 0, C.width, C.height);
-  drawGrid(); drawTiles(); drawRoom();
-}
-let rq = false;
-function qr() { if (!rq) { rq = true; requestAnimationFrame(() => { rq = false; render(); }); } }
+function render(){C.width=innerWidth;C.height=innerHeight;ctx.clearRect(0,0,C.width,C.height);drawGrid();drawTiles();drawRoom()}
+let rq=false;function qr(){if(!rq){rq=true;requestAnimationFrame(()=>{rq=false;render()})}}
 
 // ===== HIT TESTING =====
-function hitVertex(sx, sy, thresh = 14) {
-  for (let i = 0; i < verts.length; i++)
-    if ((w2x(verts[i].x) - sx) ** 2 + (w2y(verts[i].y) - sy) ** 2 < thresh * thresh) return i;
-  return -1;
-}
-
-function ptSegDist2(px, py, ax, ay, bx, by) {
-  const dx = bx - ax, dy = by - ay, lsq = dx * dx + dy * dy;
-  if (lsq === 0) return (px - ax) ** 2 + (py - ay) ** 2;
-  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lsq));
-  return (px - (ax + t * dx)) ** 2 + (py - (ay + t * dy)) ** 2;
-}
-
-function hitWall(sx, sy, thresh = 10) {
-  const n = closed ? verts.length : verts.length - 1;
-  for (let i = 0; i < n; i++) {
-    const a = verts[i], b = verts[(i + 1) % verts.length];
-    if (ptSegDist2(sx, sy, w2x(a.x), w2y(a.y), w2x(b.x), w2y(b.y)) < thresh * thresh) return i;
-  }
-  return -1;
-}
-
-// ===== POINT IN POLYGON =====
-function pip(px, py) {
-  let inside = false;
-  for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
-    const xi = verts[i].x, yi = verts[i].y, xj = verts[j].x, yj = verts[j].y;
-    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
+function hitVertex(sx,sy,th=14){for(let i=0;i<verts.length;i++)if((w2x(verts[i].x)-sx)**2+(w2y(verts[i].y)-sy)**2<th*th)return i;return-1}
+function ptSegD2(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;if(!l)return(px-ax)**2+(py-ay)**2;const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/l));return(px-(ax+t*dx))**2+(py-(ay+t*dy))**2}
+function hitWall(sx,sy,th=10){const n=closed?verts.length:verts.length-1;for(let i=0;i<n;i++){const a=verts[i],b=verts[(i+1)%verts.length];if(ptSegD2(sx,sy,w2x(a.x),w2y(a.y),w2x(b.x),w2y(b.y))<th*th)return i}return-1}
+function pip(px,py){let ins=false;for(let i=0,j=verts.length-1;i<verts.length;j=i++){const xi=verts[i].x,yi=verts[i].y,xj=verts[j].x,yj=verts[j].y;if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)ins=!ins}return ins}
 
 // ===== SIMULATION =====
-function simulate() {
-  if (!closed || verts.length < 3) return;
-  const tw = parseFloat($('tileW').value) || 24;
-  const th = parseFloat($('tileH').value) || 24;
-  const gap = parseFloat($('gap').value) || 0;
-  const pattern = $('pattern').value;
-  const gw = tw + gap, gh = th + gap;
+function simulate(){
+  if(!closed||verts.length<3)return;
+  const tw=parseFloat($('tileW').value)||24;
+  const th=parseFloat($('tileH').value)||24;
 
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const v of verts) {
-    minX = Math.min(minX, v.x); minY = Math.min(minY, v.y);
-    maxX = Math.max(maxX, v.x); maxY = Math.max(maxY, v.y);
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const v of verts){minX=Math.min(minX,v.x);minY=Math.min(minY,v.y);maxX=Math.max(maxX,v.x);maxY=Math.max(maxY,v.y)}
+
+  const rw=Math.ceil(maxX-minX),rh=Math.ceil(maxY-minY);
+  const bitmap=new Uint8Array(rw*rh);
+  for(let y=0;y<rh;y++)for(let x=0;x<rw;x++)if(pip(minX+x+.5,minY+y+.5))bitmap[y*rw+x]=1;
+
+  tiles=[];let fullC=0,cutC=0,reusedC=0,newT=0;
+  const offcuts=[],TOL=.125;
+
+  function roomCells(rx,ry,rW,rH){let tot=0,ins=0;
+    const x0=Math.max(0,Math.floor(rx-minX)),y0=Math.max(0,Math.floor(ry-minY));
+    const x1=Math.min(rw,Math.ceil(rx+rW-minX)),y1=Math.min(rh,Math.ceil(ry+rH-minY));
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){tot++;if(bitmap[y*rw+x])ins++}
+    return{tot,ins}}
+
+  function findOC(nw,nh){for(let i=0;i<offcuts.length;i++){const o=offcuts[i];
+    if((o.w>=nw-TOL&&o.h>=nh-TOL)||(o.h>=nw-TOL&&o.w>=nh-TOL)){
+      const ow=o.w>=nw-TOL&&o.h>=nh-TOL?o.w:o.h,oh=o.w>=nw-TOL&&o.h>=nh-TOL?o.h:o.w;
+      offcuts.splice(i,1);if(ow-nw>1&&oh>1)offcuts.push({w:ow-nw,h:oh});
+      if(oh-nh>1&&nw>1)offcuts.push({w:nw,h:oh-nh});return true}}return false}
+
+  // Simple grid, no gap (interlocking tiles)
+  const nR=Math.ceil(rh/th)+1,nC=Math.ceil(rw/tw)+1;
+  for(let row=0;row<nR;row++){for(let col=0;col<nC;col++){
+    const tx=minX+col*tw,ty=minY+row*th;
+    const eW=Math.min(tw,maxX-tx),eH=Math.min(th,maxY-ty);
+    if(eW<=0||eH<=0||tx+tw<=minX||ty+th<=minY)continue;
+    const{tot,ins}=roomCells(tx,ty,Math.min(tw,maxX-tx+10),Math.min(th,maxY-ty+10));
+    if(!ins)continue;
+    if(eW>=tw-TOL&&eH>=th-TOL&&ins===tot){tiles.push({x:tx,y:ty,w:tw,h:th,type:'full'});fullC++;newT++}
+    else{const nw=Math.min(tw,eW),nh=Math.min(th,eH);
+      if(findOC(nw,nh)){tiles.push({x:tx,y:ty,w:nw,h:nh,type:'reused'});reusedC++}
+      else{tiles.push({x:tx,y:ty,w:nw,h:nh,type:'cut'});cutC++;newT++;
+        const remW=tw-nw,remH=th-nh;
+        if(remW>1&&nh>1)offcuts.push({w:remW,h:nh});
+        if(remH>1&&tw>1)offcuts.push({w:tw,h:remH})}}}}
+
+  // ===== EDGE STRIPS & CORNERS =====
+  const n=verts.length;
+  let totalEdge=0,outCorners=0,inCorners=0,perimIn=0;
+
+  // Signed area for winding direction (shoelace)
+  let sa2=0;
+  for(let i=0;i<n;i++){const a=verts[i],b=verts[(i+1)%n];sa2+=a.x*b.y-b.x*a.y}
+  const isCW=sa2>0;
+
+  for(let i=0;i<n;i++){
+    const a=verts[i],b=verts[(i+1)%n];
+    const wl=distV(a,b);perimIn+=wl;
+    // Edge strips: one per tile edge along this wall
+    const isH=Math.abs(b.x-a.x)>Math.abs(b.y-a.y);
+    totalEdge+=Math.ceil(wl/(isH?tw:th));
+    // Corner classification at vertex i
+    const prev=verts[(i-1+n)%n],curr=verts[i],next=verts[(i+1)%n];
+    const dx1=curr.x-prev.x,dy1=curr.y-prev.y;
+    const dx2=next.x-curr.x,dy2=next.y-curr.y;
+    const cross=dx1*dy2-dy1*dx2;
+    if(Math.abs(cross)>0.01){if((cross>0)===isCW)outCorners++;else inCorners++}
   }
 
-  const rw = Math.ceil(maxX - minX), rh = Math.ceil(maxY - minY);
-  const bitmap = new Uint8Array(rw * rh);
-  for (let y = 0; y < rh; y++)
-    for (let x = 0; x < rw; x++)
-      if (pip(minX + x + 0.5, minY + y + 0.5)) bitmap[y * rw + x] = 1;
+  simulated=true;
+  let roomSqIn=0;for(let i=0;i<bitmap.length;i++)if(bitmap[i])roomSqIn++;
+  const roomFt2=roomSqIn/144,tileFt2=(newT*tw*th)/144;
+  const waste=tileFt2>0?Math.max(0,(tileFt2-roomFt2)/tileFt2*100):0;
 
-  tiles = [];
-  let fullCount = 0, cutCount = 0, reusedCount = 0, newTiles = 0;
-  const offcuts = [];
-  const TOL = 0.125;
-
-  function roomCells(rx, ry, rW, rH) {
-    let total = 0, inside = 0;
-    const x0 = Math.max(0, Math.floor(rx - minX)), y0 = Math.max(0, Math.floor(ry - minY));
-    const x1 = Math.min(rw, Math.ceil(rx + rW - minX)), y1 = Math.min(rh, Math.ceil(ry + rH - minY));
-    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { total++; if (bitmap[y * rw + x]) inside++; }
-    return { total, inside };
-  }
-
-  function findOffcut(nw, nh) {
-    for (let i = 0; i < offcuts.length; i++) {
-      const o = offcuts[i];
-      if ((o.w >= nw - TOL && o.h >= nh - TOL) || (o.h >= nw - TOL && o.w >= nh - TOL)) {
-        const ow = o.w >= nw - TOL && o.h >= nh - TOL ? o.w : o.h;
-        const oh = o.w >= nw - TOL && o.h >= nh - TOL ? o.h : o.w;
-        offcuts.splice(i, 1);
-        if (ow - nw > 1 && oh > 1) offcuts.push({ w: ow - nw, h: oh });
-        if (oh - nh > 1 && nw > 1) offcuts.push({ w: nw, h: oh - nh });
-        return true;
-      }
-    }
-    return false;
-  }
-
-  const numRows = Math.ceil(rh / gh) + 1, numCols = Math.ceil(rw / gw) + 2;
-  for (let row = 0; row < numRows; row++) {
-    for (let col = -1; col < numCols; col++) {
-      let offX = 0;
-      if (pattern === 'brick') offX = (row % 2) * (gw / 2);
-      else if (pattern === 'third') offX = (row % 3) * (gw / 3);
-      const tx = minX + col * gw + offX, ty = minY + row * gh;
-      const effW = Math.min(tw, maxX - tx), effH = Math.min(th, maxY - ty);
-      if (effW <= 0 || effH <= 0 || tx + tw <= minX || ty + th <= minY) continue;
-      const { total, inside } = roomCells(tx, ty, Math.min(tw, maxX - tx + 10), Math.min(th, maxY - ty + 10));
-      if (inside === 0) continue;
-      if (effW >= tw - TOL && effH >= th - TOL && inside === total) {
-        tiles.push({ x: tx, y: ty, w: tw, h: th, type: 'full' }); fullCount++; newTiles++;
-      } else {
-        const nw = Math.min(tw, effW), nh = Math.min(th, effH);
-        if (findOffcut(nw, nh)) {
-          tiles.push({ x: tx, y: ty, w: nw, h: nh, type: 'reused' }); reusedCount++;
-        } else {
-          tiles.push({ x: tx, y: ty, w: nw, h: nh, type: 'cut' }); cutCount++; newTiles++;
-          const remW = tw - nw, remH = th - nh;
-          if (remW > 1 && nh > 1) offcuts.push({ w: remW, h: nh });
-          if (remH > 1 && tw > 1) offcuts.push({ w: tw, h: remH });
-        }
-      }
-    }
-  }
-
-  simulated = true;
-  let roomSqIn = 0;
-  for (let i = 0; i < bitmap.length; i++) if (bitmap[i]) roomSqIn++;
-  const roomFt2 = roomSqIn / 144, tileFt2 = (newTiles * tw * th) / 144;
-  const waste = tileFt2 > 0 ? Math.max(0, (tileFt2 - roomFt2) / tileFt2 * 100) : 0;
-  $('sToBuy').textContent = newTiles;
-  $('sFull').textContent = fullCount;
-  $('sCut').textContent = cutCount;
-  $('sReused').textContent = reusedCount;
-  $('sWaste').textContent = waste.toFixed(1) + '%';
-  $('sRoom').textContent = roomFt2.toFixed(1);
-  $('sTile').textContent = tileFt2.toFixed(1);
-  $('stats').style.display = 'block';
+  $('sToBuy').textContent=newT;
+  $('sFull').textContent=fullC;
+  $('sCut').textContent=cutC;
+  $('sReused').textContent=reusedC;
+  $('sWaste').textContent=waste.toFixed(1)+'%';
+  $('sRoom').textContent=roomFt2.toFixed(1);
+  $('sPerim').textContent=fmtFtIn(perimIn);
+  $('sEdge').textContent=totalEdge;
+  $('sOutC').textContent=outCorners;
+  $('sInC').textContent=inCorners;
+  $('stats').style.display='block';
   qr();
 }
 
 // ===== WALL LENGTH EDITING =====
-function showWallInput(i) {
-  const a = verts[i], b = verts[(i + 1) % verts.length];
-  const len = distV(a, b);
-  const sx1 = w2x(a.x), sy1 = w2y(a.y), sx2 = w2x(b.x), sy2 = w2y(b.y);
-  const el = $('wallInput'), inp = $('wlIn');
-  inp.value = len % 1 ? len.toFixed(1) : len.toString();
-  el.style.left = ((sx1 + sx2) / 2) + 'px';
-  el.style.top = ((sy1 + sy2) / 2) + 'px';
-  el.style.display = 'block';
-  setTimeout(() => { inp.focus(); inp.select(); }, 0);
-}
+function showWallInput(i){const a=verts[i],b=verts[(i+1)%verts.length];const len=distV(a,b);
+  const el=$('wallInput'),inp=$('wlIn');
+  inp.value=len%1?len.toFixed(1):len.toString();
+  el.style.left=((w2x(a.x)+w2x(b.x))/2)+'px';el.style.top=((w2y(a.y)+w2y(b.y))/2)+'px';
+  el.style.display='block';setTimeout(()=>{inp.focus();inp.select()},0)}
+function hideWallInput(){$('wallInput').style.display='none'}
+function applyWallLength(){if(selWall<0)return;const len=parseLen($('wlIn').value);
+  if(len==null||len<=0)return;const a=verts[selWall],b=verts[(selWall+1)%verts.length];
+  const dx=b.x-a.x,dy=b.y-a.y,cur=Math.sqrt(dx*dx+dy*dy);if(cur<.01)return;
+  const s=len/cur;b.x=snp(a.x+dx*s);b.y=snp(a.y+dy*s);simulated=false;hideWallInput();qr()}
+$('wlIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyWallLength()}
+  if(e.key==='Escape'){e.preventDefault();hideWallInput();selWall=-1;qr()}e.stopPropagation()});
+$('wlIn').addEventListener('keypress',e=>e.stopPropagation());
 
-function hideWallInput() { $('wallInput').style.display = 'none'; }
+// ===== CONSTRAINED DRAG =====
+function beginCD(vi){const n=verts.length,v=verts[vi];let pO=null,nO=null;
+  if(closed||vi>0){pO=wallOrient(verts[(vi-1+n)%n],v)}
+  if(closed||vi<n-1){nO=wallOrient(v,verts[(vi+1)%n])}
+  dragWallOrients={prev:pO,next:nO}}
+function applyCD(vi){if(!dragWallOrients)return;const n=verts.length,v=verts[vi];
+  if(dragWallOrients.prev&&(closed||vi>0)){const p=verts[(vi-1+n)%n];if(dragWallOrients.prev==='h')p.y=v.y;else p.x=v.x}
+  if(dragWallOrients.next&&(closed||vi<n-1)){const nx=verts[(vi+1)%n];if(dragWallOrients.next==='h')nx.y=v.y;else nx.x=v.x}}
 
-function applyWallLength() {
-  if (selWall < 0) return;
-  const len = parseLen($('wlIn').value);
-  if (len == null || len <= 0) return;
-  const a = verts[selWall], b = verts[(selWall + 1) % verts.length];
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const cur = Math.sqrt(dx * dx + dy * dy);
-  if (cur < 0.01) return;
-  const s = len / cur;
-  b.x = snap(a.x + dx * s); b.y = snap(a.y + dy * s);
-  simulated = false; hideWallInput(); qr();
-}
+// ===== MOUSE =====
+const DT=5;
+C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
+  if(e.button===1||e.button===2){panning=true;panSX=sx;panSY=sy;panOX=ox;panOY=oy;C.style.cursor='grabbing';e.preventDefault();return}
+  hideWallInput();mdPos={x:sx,y:sy};didDrag=false;
+  mdVert=hitVertex(sx,sy);if(mdVert>=0){mdWall=-1;return}
+  mdWall=hitWall(sx,sy);if(mdWall>=0)return;
+  if(!closed){let wx=snp(s2wx(sx)),wy=snp(s2wy(sy));
+    if(drawFrom>=0){const c=constrainHV(wx,wy,verts[drawFrom]);wx=c.x;wy=c.y}
+    if(drawFrom===0&&verts.length>0){verts.unshift({x:wx,y:wy});drawFrom=0}
+    else{verts.push({x:wx,y:wy});drawFrom=verts.length-1}
+    simulated=false;updateModeTag();qr()}});
 
-$('wlIn').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); applyWallLength(); }
-  if (e.key === 'Escape') { e.preventDefault(); hideWallInput(); selWall = -1; qr(); }
-  e.stopPropagation();
-});
-$('wlIn').addEventListener('keypress', e => e.stopPropagation());
+C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;
+  const rwx=s2wx(sx),rwy=s2wy(sy);
+  $('coords').textContent=`${fmtIn(rwx)} , ${fmtIn(rwy)}`;
+  if(panning){ox=panOX+(sx-panSX);oy=panOY+(sy-panSY);qr();return}
+  if(mdVert>=0&&mdPos&&!didDrag){const dx=sx-mdPos.x,dy=sy-mdPos.y;
+    if(dx*dx+dy*dy>DT*DT){didDrag=true;dragVert=mdVert;if(shouldSnap())beginCD(mdVert);else dragWallOrients=null}}
+  if(dragVert>=0){verts[dragVert].x=snp(rwx);verts[dragVert].y=snp(rwy);
+    if(shouldSnap()&&dragWallOrients)applyCD(dragVert);simulated=false;C.style.cursor='grabbing';qr();return}
+  if(drawFrom>=0&&!closed){ghostSnap=constrainHV(rwx,rwy,verts[drawFrom])}else{ghostSnap=null}
+  hoverVert=hitVertex(sx,sy);hoverWall=hoverVert<0?hitWall(sx,sy):-1;
+  C.style.cursor=hoverVert>=0?'grab':hoverWall>=0?'pointer':(drawFrom>=0&&!closed?'crosshair':'default');qr()});
 
-// ===== CONSTRAINED DRAG: adjust neighbors to keep 90° =====
-function beginConstrainedDrag(vi) {
-  const n = verts.length;
-  const v = verts[vi];
-  let prevO = null, nextO = null;
-  if (closed || vi > 0) {
-    const prev = verts[(vi - 1 + n) % n];
-    prevO = wallOrient(prev, v);
-  }
-  if (closed || vi < n - 1) {
-    const next = verts[(vi + 1) % n];
-    nextO = wallOrient(v, next);
-  }
-  dragWallOrients = { prev: prevO, next: nextO };
-}
+C.addEventListener('mouseup',e=>{
+  if(panning){panning=false;C.style.cursor=drawFrom>=0&&!closed?'crosshair':'default';return}
+  if(dragVert>=0){dragVert=-1;dragWallOrients=null;C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
+  const sx=e.clientX;
+  if(mdVert>=0&&!didDrag){
+    if(!closed&&drawFrom>=0&&verts.length>2&&mdVert===closeTarget()){closed=true;drawFrom=-1;ghostSnap=null;updateModeTag();qr()}
+    else if(!closed&&drawFrom===-1&&isEndVertex(mdVert)){drawFrom=mdVert;updateModeTag();qr()}
+    else if(!closed&&drawFrom>=0&&isEndVertex(mdVert)&&mdVert!==drawFrom){drawFrom=mdVert;updateModeTag();qr()}}
+  if(mdWall>=0&&!didDrag){if(e.detail===2){const a=verts[mdWall],b=verts[(mdWall+1)%verts.length];
+    const dx=b.x-a.x,dy=b.y-a.y,lsq=dx*dx+dy*dy;
+    if(lsq>0){const rw2=s2wx(sx),ry=s2wy(e.clientY);
+      let t=Math.max(.05,Math.min(.95,((rw2-a.x)*dx+(ry-a.y)*dy)/lsq));
+      verts.splice(mdWall+1,0,{x:snp(a.x+dx*t),y:snp(a.y+dy*t)});simulated=false}
+    selWall=-1}else{selWall=mdWall;showWallInput(mdWall)}qr()}
+  mdPos=null;mdVert=-1;mdWall=-1;didDrag=false});
 
-function applyConstrainedDrag(vi) {
-  if (!dragWallOrients) return;
-  const n = verts.length;
-  const v = verts[vi];
+C.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.12:1/1.12;
+  const ns=Math.max(.15,Math.min(40,scale*f));
+  ox=e.clientX-(e.clientX-ox)*(ns/scale);oy=e.clientY-(e.clientY-oy)*(ns/scale);scale=ns;qr()},{passive:false});
+C.addEventListener('contextmenu',e=>e.preventDefault());
 
-  if (dragWallOrients.prev && (closed || vi > 0)) {
-    const prev = verts[(vi - 1 + n) % n];
-    if (dragWallOrients.prev === 'h') prev.y = v.y;
-    else prev.x = v.x;
-  }
-  if (dragWallOrients.next && (closed || vi < n - 1)) {
-    const next = verts[(vi + 1) % n];
-    if (dragWallOrients.next === 'h') next.y = v.y;
-    else next.x = v.x;
-  }
-}
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;ctrlDown=e.ctrlKey||e.metaKey;
+  if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();
+    if(!closed&&verts.length>0){if(drawFrom===0)verts.shift();else verts.pop();
+      if(!verts.length)drawFrom=-1;else if(drawFrom===0)drawFrom=0;else drawFrom=verts.length-1;
+      simulated=false;updateModeTag();qr()}
+    else if(closed&&hoverVert>=0&&verts.length>3){verts.splice(hoverVert,1);hoverVert=-1;simulated=false;qr()}}
+  if(e.key==='Escape'){if(selWall>=0){selWall=-1;hideWallInput()}
+    else if(drawFrom>=0&&!closed){drawFrom=-1;ghostSnap=null}
+    else if(!closed&&verts.length>0){verts=[];drawFrom=-1;ghostSnap=null}
+    updateModeTag();qr()}});
+document.addEventListener('keyup',e=>{ctrlDown=e.ctrlKey||e.metaKey});
 
-// ===== MOUSE EVENTS =====
-const DRAG_THRESH = 5;
+// ===== SAVE / LOAD =====
+const SKEY='tilecalc_rooms';
+function getSaved(){try{return JSON.parse(localStorage.getItem(SKEY))||[]}catch{return[]}}
+function setSaved(r){localStorage.setItem(SKEY,JSON.stringify(r))}
 
-C.addEventListener('mousedown', e => {
-  const sx = e.clientX, sy = e.clientY;
-  if (e.button === 1 || e.button === 2) {
-    panning = true; panSX = sx; panSY = sy; panOX = ox; panOY = oy;
-    C.style.cursor = 'grabbing'; e.preventDefault(); return;
-  }
+function populateLoad(){const sel=$('savedRooms'),rooms=getSaved();
+  sel.innerHTML='<option value="">Load…</option>'+rooms.map((r,i)=>`<option value="${i}">${r.name}</option>`).join('')}
 
-  hideWallInput();
-  mdPos = { x: sx, y: sy }; didDrag = false;
+function openSaveDialog(){if(!verts.length)return;$('saveDialog').style.display='block';$('saveOverlay').style.display='block';$('saveName').focus()}
+function closeSaveDialog(){$('saveDialog').style.display='none';$('saveOverlay').style.display='none';$('saveName').value=''}
 
-  mdVert = hitVertex(sx, sy);
-  if (mdVert >= 0) { mdWall = -1; return; }
+function confirmSave(){const name=$('saveName').value.trim();if(!name)return;
+  const rooms=getSaved();const idx=rooms.findIndex(r=>r.name===name);if(idx>=0)rooms.splice(idx,1);
+  rooms.push({name,verts:verts.map(v=>({x:v.x,y:v.y})),closed,
+    tileW:parseFloat($('tileW').value)||24,tileH:parseFloat($('tileH').value)||24,
+    tabDepth:parseFloat($('tab').value)||.25,snapMode,savedAt:new Date().toISOString()});
+  setSaved(rooms);populateLoad();closeSaveDialog()}
 
-  mdWall = hitWall(sx, sy);
-  if (mdWall >= 0) return;
+$('saveName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();confirmSave()}
+  if(e.key==='Escape'){e.preventDefault();closeSaveDialog()}e.stopPropagation()});
 
-  // Empty space click → place vertex
-  if (!closed) {
-    let wx = snap(s2wx(sx)), wy = snap(s2wy(sy));
-    if (drawFrom >= 0) {
-      const from = verts[drawFrom];
-      const c = constrainHV(wx, wy, from);
-      wx = c.x; wy = c.y;
-    }
+function loadRoom(){const sel=$('savedRooms'),idx=parseInt(sel.value);if(isNaN(idx))return;
+  const r=getSaved()[idx];if(!r)return;
+  verts=r.verts.map(v=>({x:v.x,y:v.y}));closed=r.closed;drawFrom=-1;
+  $('tileW').value=r.tileW||24;$('tileH').value=r.tileH||24;$('tab').value=r.tabDepth||.25;
+  if(r.snapMode!==undefined){snapMode=r.snapMode;$('snapBtn').classList.toggle('snap-on',snapMode);$('snapBtn').style.background=snapMode?'':'#333'}
+  tiles=[];simulated=false;sel.value='';updateModeTag();resetView()}
 
-    if (drawFrom === 0 && verts.length > 0) {
-      // Prepend
-      verts.unshift({ x: wx, y: wy });
-      drawFrom = 0;
-    } else if (drawFrom >= 0) {
-      // Append
-      verts.push({ x: wx, y: wy });
-      drawFrom = verts.length - 1;
-    } else {
-      // First vertex or resuming from nothing
-      verts.push({ x: wx, y: wy });
-      drawFrom = verts.length - 1;
-    }
-    simulated = false; updateModeTag(); qr();
-  }
-});
+function deleteRoom(){const sel=$('savedRooms'),idx=parseInt(sel.value);if(isNaN(idx))return;
+  const rooms=getSaved();if(!rooms[idx])return;
+  if(confirm(`Delete "${rooms[idx].name}"?`)){rooms.splice(idx,1);setSaved(rooms);populateLoad()}}
 
-C.addEventListener('mousemove', e => {
-  const sx = e.clientX, sy = e.clientY;
-  const rwx = s2wx(sx), rwy = s2wy(sy);
-  $('coords').textContent = `${fmtIn(rwx)} , ${fmtIn(rwy)}`;
+function clearAll(){verts=[];closed=false;drawFrom=-1;tiles=[];simulated=false;
+  selWall=-1;hoverVert=-1;hoverWall=-1;ghostSnap=null;dragWallOrients=null;
+  hideWallInput();$('stats').style.display='none';updateModeTag();C.style.cursor='default';qr()}
 
-  if (panning) { ox = panOX + (sx - panSX); oy = panOY + (sy - panSY); qr(); return; }
+function resetView(){if(!verts.length){ox=100;oy=100;scale=4;qr();return}
+  let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
+  for(const v of verts){mnx=Math.min(mnx,v.x);mny=Math.min(mny,v.y);mxx=Math.max(mxx,v.x);mxy=Math.max(mxy,v.y)}
+  const pad=80,sw=C.width-280-pad*2,sh=C.height-pad*2;
+  scale=Math.min(sw/(mxx-mnx||1),sh/(mxy-mny||1));
+  ox=pad+sw/2-((mnx+mxx)/2)*scale;oy=pad+sh/2-((mny+mxy)/2)*scale;qr()}
 
-  // Detect drag start
-  if (mdVert >= 0 && mdPos && !didDrag) {
-    const dx = sx - mdPos.x, dy = sy - mdPos.y;
-    if (dx * dx + dy * dy > DRAG_THRESH * DRAG_THRESH) {
-      didDrag = true;
-      dragVert = mdVert;
-      if (shouldSnap()) beginConstrainedDrag(mdVert);
-      else dragWallOrients = null;
-    }
-  }
-
-  // Apply drag
-  if (dragVert >= 0) {
-    verts[dragVert].x = snap(rwx);
-    verts[dragVert].y = snap(rwy);
-    if (shouldSnap() && dragWallOrients) applyConstrainedDrag(dragVert);
-    simulated = false;
-    C.style.cursor = 'grabbing';
-    qr();
-    return;
-  }
-
-  // Ghost snap
-  if (drawFrom >= 0 && !closed) {
-    const from = verts[drawFrom];
-    const c = constrainHV(rwx, rwy, from);
-    ghostSnap = c;
-  } else {
-    ghostSnap = null;
-  }
-
-  hoverVert = hitVertex(sx, sy);
-  hoverWall = hoverVert < 0 ? hitWall(sx, sy) : -1;
-
-  if (hoverVert >= 0) C.style.cursor = 'grab';
-  else if (hoverWall >= 0) C.style.cursor = 'pointer';
-  else if (drawFrom >= 0 && !closed) C.style.cursor = 'crosshair';
-  else C.style.cursor = 'default';
-  qr();
-});
-
-C.addEventListener('mouseup', e => {
-  if (panning) {
-    panning = false;
-    C.style.cursor = drawFrom >= 0 && !closed ? 'crosshair' : 'default';
-    return;
-  }
-
-  if (dragVert >= 0) {
-    dragVert = -1; dragWallOrients = null;
-    C.style.cursor = 'grab';
-    mdPos = null; mdVert = -1; mdWall = -1;
-    qr(); return;
-  }
-
-  // Quick click on vertex
-  if (mdVert >= 0 && !didDrag) {
-    if (!closed && drawFrom >= 0 && verts.length > 2 && mdVert === closeTarget()) {
-      // Close the polygon
-      closed = true; drawFrom = -1; ghostSnap = null;
-      updateModeTag(); qr();
-    } else if (!closed && drawFrom === -1 && isEndVertex(mdVert)) {
-      // Resume drawing from this end vertex
-      drawFrom = mdVert;
-      updateModeTag(); qr();
-    } else if (!closed && drawFrom >= 0 && isEndVertex(mdVert) && mdVert !== drawFrom) {
-      // Switch drawing end
-      drawFrom = mdVert;
-      updateModeTag(); qr();
-    }
-  }
-
-  // Quick click on wall
-  if (mdWall >= 0 && !didDrag) {
-    if (e.detail === 2) {
-      const a = verts[mdWall], b = verts[(mdWall + 1) % verts.length];
-      const dx = b.x - a.x, dy = b.y - a.y, lsq = dx * dx + dy * dy;
-      if (lsq > 0) {
-        const rwx = s2wx(e.clientX), rwy = s2wy(e.clientY);
-        let t = Math.max(0.05, Math.min(0.95, ((rwx - a.x) * dx + (rwy - a.y) * dy) / lsq));
-        verts.splice(mdWall + 1, 0, { x: snap(a.x + dx * t), y: snap(a.y + dy * t) });
-        simulated = false;
-      }
-      selWall = -1;
-    } else {
-      selWall = mdWall;
-      showWallInput(mdWall);
-    }
-    qr();
-  }
-
-  mdPos = null; mdVert = -1; mdWall = -1; didDrag = false;
-});
-
-C.addEventListener('wheel', e => {
-  e.preventDefault();
-  const f = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-  const ns = Math.max(0.15, Math.min(40, scale * f));
-  ox = e.clientX - (e.clientX - ox) * (ns / scale);
-  oy = e.clientY - (e.clientY - oy) * (ns / scale);
-  scale = ns; qr();
-}, { passive: false });
-
-C.addEventListener('contextmenu', e => e.preventDefault());
-
-// ===== KEYBOARD =====
-document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-  ctrlDown = e.ctrlKey || e.metaKey;
-
-  if (e.key === 'Backspace' || e.key === 'Delete') {
-    e.preventDefault();
-    if (!closed && verts.length > 0) {
-      if (drawFrom === 0) verts.shift(); else verts.pop();
-      if (verts.length === 0) drawFrom = -1;
-      else if (drawFrom === 0) drawFrom = 0;
-      else drawFrom = verts.length - 1;
-      simulated = false; updateModeTag(); qr();
-    } else if (closed && hoverVert >= 0 && verts.length > 3) {
-      verts.splice(hoverVert, 1);
-      hoverVert = -1; simulated = false; qr();
-    }
-  }
-
-  if (e.key === 'Escape') {
-    if (selWall >= 0) { selWall = -1; hideWallInput(); }
-    else if (drawFrom >= 0 && !closed) { drawFrom = -1; ghostSnap = null; }
-    else if (!closed && verts.length > 0) { verts = []; drawFrom = -1; ghostSnap = null; }
-    updateModeTag(); qr();
-  }
-});
-document.addEventListener('keyup', e => { ctrlDown = e.ctrlKey || e.metaKey; });
-
-function clearAll() {
-  verts = []; closed = false; drawFrom = -1; tiles = []; simulated = false;
-  selWall = -1; hoverVert = -1; hoverWall = -1; ghostSnap = null; dragWallOrients = null;
-  hideWallInput(); $('stats').style.display = 'none';
-  updateModeTag(); C.style.cursor = 'default'; qr();
-}
-
-function resetView() {
-  if (verts.length === 0) { ox = 100; oy = 100; scale = 4; qr(); return; }
-  let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
-  for (const v of verts) { mnx = Math.min(mnx, v.x); mny = Math.min(mny, v.y); mxx = Math.max(mxx, v.x); mxy = Math.max(mxy, v.y); }
-  const pad = 80, sw = C.width - 280 - pad * 2, sh = C.height - pad * 2;
-  scale = Math.min(sw / (mxx - mnx || 1), sh / (mxy - mny || 1));
-  ox = pad + (sw / 2) - ((mnx + mxx) / 2) * scale;
-  oy = pad + (sh / 2) - ((mny + mxy) / 2) * scale;
-  qr();
-}
-
-window.addEventListener('resize', qr);
-updateModeTag(); qr();
+window.addEventListener('resize',qr);
+populateLoad();updateModeTag();qr();
 </script>
 </body>
 </html>
