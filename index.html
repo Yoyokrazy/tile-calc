@@ -488,15 +488,15 @@ function simRoom(rm,tw,th,budget,offcuts){
     const nw=Math.min(tw,eW),nh=Math.min(th,eH);
     const isFull=nw>=tw-TOL&&nh>=th-TOL&&ins===tot;
     if(isFull){
-      if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:tw,h:th,type:'unfilled'});unfilledC++;continue}
-      tiles.push({x:tx,y:ty,w:tw,h:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}});fullC++;newT++;
+      if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:tw,h:th,_slotW:tw,_slotH:th,type:'unfilled'});unfilledC++;continue}
+      tiles.push({x:tx,y:ty,w:tw,h:th,_slotW:tw,_slotH:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}});fullC++;newT++;
     }else{
       const oc=findOC(nw,nh);
-      if(oc){tiles.push({x:tx,y:ty,w:nw,h:nh,type:'reused',cutEdges:oc});reusedC++;
+      if(oc){tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'reused',cutEdges:oc});reusedC++;
         [oc.l,oc.t,oc.r,oc.b].forEach(c=>{if(c)cutEdgeEndcaps++});
       }else{
-        if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:nw,h:nh,type:'unfilled'});unfilledC++;continue}
-        const ce=cutNew(nw,nh);tiles.push({x:tx,y:ty,w:nw,h:nh,type:'cut',cutEdges:ce});cutC++;newT++;
+        if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'unfilled'});unfilledC++;continue}
+        const ce=cutNew(nw,nh);tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'cut',cutEdges:ce});cutC++;newT++;
         [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdgeEndcaps++});
       }}}}
   splitC=reusedC;
@@ -607,22 +607,25 @@ function applyCD(vi){if(!dragWallOrients)return;const vs=R().verts,n=vs.length,v
   if(dragWallOrients.prev&&(R().closed||vi>0)){const p=vs[(vi-1+n)%n];if(dragWallOrients.prev==='h')p.y=v.y;else p.x=v.x}
   if(dragWallOrients.next&&(R().closed||vi<n-1)){const nx=vs[(vi+1)%n];if(dragWallOrients.next==='h')nx.y=v.y;else nx.x=v.x}}
 
-// Place a tile (from held or drag) into an unfilled slot, handling cut-to-fit
+// Place a tile into an empty slot. Uses _slotW/_slotH for fit logic.
+// Returns true if placed. Offcuts go to toolbox.
 function placeTileInSlot(srcTile, dstT) {
   const TOL = 0.125;
   const sw = srcTile.w, sh = srcTile.h;
-  const fits = sw <= dstT.w + TOL && sh <= dstT.h + TOL;
-  const canCut = sw >= dstT.w - TOL && sh >= dstT.h - TOL;
+  const dw = dstT._slotW || dstT.w, dh = dstT._slotH || dstT.h;
+  const fits = sw <= dw + TOL && sh <= dh + TOL;
+  const canCut = sw >= dw - TOL && sh >= dh - TOL;
   if (!fits && !canCut) return false;
+  // Save original state for restore
+  if (!dstT._origType) dstT._origType = dstT.type;
   if (fits) {
-    // Tile fits as-is (same size or smaller)
     dstT.w = sw; dstT.h = sh;
-    dstT.type = srcTile.type; dstT.cutEdges = srcTile.cutEdges; dstT._reallocated = true;
+    dstT.type = srcTile.type;
+    dstT.cutEdges = srcTile.cutEdges ? {...srcTile.cutEdges} : {l:false,t:false,r:false,b:false};
   } else {
-    // Need to cut — placed piece is the slot-sized portion
-    const cutR = sw > dstT.w + TOL, cutB = sh > dstT.h + TOL;
-    const placedW = Math.min(sw, dstT.w), placedH = Math.min(sh, dstT.h);
-    // Placed piece gets cut edges on the trimmed sides
+    // Cut to fit
+    const cutR = sw > dw + TOL, cutB = sh > dh + TOL;
+    dstT.w = Math.min(sw, dw); dstT.h = Math.min(sh, dh);
     dstT.type = 'cut';
     dstT.cutEdges = {
       l: srcTile.cutEdges ? srcTile.cutEdges.l : false,
@@ -630,18 +633,26 @@ function placeTileInSlot(srcTile, dstT) {
       r: cutR ? true : (srcTile.cutEdges ? srcTile.cutEdges.r : false),
       b: cutB ? true : (srcTile.cutEdges ? srcTile.cutEdges.b : false)
     };
-    dstT._reallocated = true;
-    // Offcuts go to toolbox — each has a cut edge on the side it was cut from
-    const remW = sw - placedW, remH = sh - placedH;
-    if (remW > 1 && placedH > 1) {
-      toolbox.push({tile: {w: remW, h: placedH, type: 'cut', cutEdges: {l: true, t: false, r: srcTile.cutEdges ? srcTile.cutEdges.r : false, b: false}}});
-    }
-    if (remH > 1 && sw > 1) {
-      toolbox.push({tile: {w: sw, h: remH, type: 'cut', cutEdges: {l: false, t: true, r: false, b: srcTile.cutEdges ? srcTile.cutEdges.b : false}}});
-    }
+    const remW = sw - dstT.w, remH = sh - dstT.h;
+    if (remW > 1 && dstT.h > 1)
+      toolbox.push({tile: {w: remW, h: dstT.h, type: 'cut',
+        cutEdges: {l: true, t: srcTile.cutEdges?srcTile.cutEdges.t:false, r: srcTile.cutEdges?srcTile.cutEdges.r:false, b: srcTile.cutEdges?srcTile.cutEdges.b:false}}});
+    if (remH > 1 && sw > 1)
+      toolbox.push({tile: {w: sw, h: remH, type: 'cut',
+        cutEdges: {l: srcTile.cutEdges?srcTile.cutEdges.l:false, t: true, r: srcTile.cutEdges?srcTile.cutEdges.r:false, b: srcTile.cutEdges?srcTile.cutEdges.b:false}}});
     consolidateToolbox();
   }
+  dstT._reallocated = true;
   return true;
+}
+
+// Clear a slot back to empty, restoring slot dimensions
+function clearSlot(t) {
+  if (!t._origType) t._origType = t.type;
+  t.type = 'unfilled';
+  t.w = t._slotW || t.w;
+  t.h = t._slotH || t.h;
+  t.cutEdges = null;
 }
 
 // ===== MOUSE =====
@@ -673,7 +684,7 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
     if(t.type!=='unfilled'&&t.type!=='removed'){
       if(isOverXBtn(sx,sy,t)){
         toolbox.push({tile:{...t}});
-        t._origType=t.type;t.type='unfilled';t.cutEdges=null;
+        clearSlot(t);
         hoverTile=null;consolidateToolbox();updateToolbox();renderStats();qr();return}
       // Start drag — save tile data before it gets modified
       dragTileInfo={ri:hoverTile.ri,ti:hoverTile.ti,offX:sx-w2x(t.x),offY:sy-w2y(t.y),pos:null,
@@ -729,12 +740,21 @@ C.addEventListener('mouseup',e=>{
       const drop=hitTile(e.clientX,e.clientY);
       const td=dragTileInfo.tileData;
       const srcT=simResults.rooms[dragTileInfo.ri].tiles[dragTileInfo.ti];
+      let placed=false;
       if(drop&&!(drop.ri===dragTileInfo.ri&&drop.ti===dragTileInfo.ti)){
         const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
-        if(dstT.type==='unfilled'){
-          if(placeTileInSlot(td,dstT)){
-            srcT._origType=td.type;srcT.type='unfilled';srcT.cutEdges=null;
-            updateToolbox();renderStats()}}}}
+        if(dstT.type==='unfilled'){placed=placeTileInSlot(td,dstT)}}
+      // If drop on same slot → return tile, no-op
+      if(drop&&drop.ri===dragTileInfo.ri&&drop.ti===dragTileInfo.ti){
+        // No-op: tile stays where it was (restore from clear)
+        srcT.type=td.type;srcT.w=td.w;srcT.h=td.h;srcT.cutEdges=td.cutEdges;
+      }else if(placed){
+        clearSlot(srcT);
+      }else{
+        // Dropped on nothing or incompatible slot → send to toolbox
+        toolbox.push({tile:{...td}});clearSlot(srcT);consolidateToolbox();
+      }
+      updateToolbox();renderStats()}
     dragTileInfo=null;C.style.cursor='default';mdPos=null;qr();return}
   if(dragVert>=0){dragVert=-1;dragWallOrients=null;alignGuides=[];C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
   const sx=e.clientX,rm=R(),vs=rm.verts;
@@ -828,7 +848,10 @@ function cancelHeld(){heldTile=null;updateToolbox();qr()}
 function clearToolbox(){
   if(!simResults)return;
   for(const rr of simResults.rooms){for(const t of rr.tiles){
-    if((t.type==='removed'||t.type==='unfilled')&&t._origType){t.type=t._origType;delete t._origType}}}
+    if(t._origType){t.type=t._origType;delete t._origType;
+      // Restore slot dimensions
+      if(t._slotW){t.w=t._slotW;t.h=t._slotH}
+      t.cutEdges=null;t._reallocated=false}}}
   toolbox=[];heldTile=null;heldRotated=false;updateToolbox();renderStats();qr();
 }
 
