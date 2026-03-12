@@ -607,6 +607,43 @@ function applyCD(vi){if(!dragWallOrients)return;const vs=R().verts,n=vs.length,v
   if(dragWallOrients.prev&&(R().closed||vi>0)){const p=vs[(vi-1+n)%n];if(dragWallOrients.prev==='h')p.y=v.y;else p.x=v.x}
   if(dragWallOrients.next&&(R().closed||vi<n-1)){const nx=vs[(vi+1)%n];if(dragWallOrients.next==='h')nx.y=v.y;else nx.x=v.x}}
 
+// Place a tile (from held or drag) into an unfilled slot, handling cut-to-fit
+function placeTileInSlot(srcTile, dstT) {
+  const TOL = 0.125;
+  const sw = srcTile.w, sh = srcTile.h;
+  const fits = sw <= dstT.w + TOL && sh <= dstT.h + TOL;
+  const canCut = sw >= dstT.w - TOL && sh >= dstT.h - TOL;
+  if (!fits && !canCut) return false;
+  if (fits) {
+    // Tile fits as-is (same size or smaller)
+    dstT.w = sw; dstT.h = sh;
+    dstT.type = srcTile.type; dstT.cutEdges = srcTile.cutEdges; dstT._reallocated = true;
+  } else {
+    // Need to cut — placed piece is the slot-sized portion
+    const cutR = sw > dstT.w + TOL, cutB = sh > dstT.h + TOL;
+    const placedW = Math.min(sw, dstT.w), placedH = Math.min(sh, dstT.h);
+    // Placed piece gets cut edges on the trimmed sides
+    dstT.type = 'cut';
+    dstT.cutEdges = {
+      l: srcTile.cutEdges ? srcTile.cutEdges.l : false,
+      t: srcTile.cutEdges ? srcTile.cutEdges.t : false,
+      r: cutR ? true : (srcTile.cutEdges ? srcTile.cutEdges.r : false),
+      b: cutB ? true : (srcTile.cutEdges ? srcTile.cutEdges.b : false)
+    };
+    dstT._reallocated = true;
+    // Offcuts go to toolbox — each has a cut edge on the side it was cut from
+    const remW = sw - placedW, remH = sh - placedH;
+    if (remW > 1 && placedH > 1) {
+      toolbox.push({tile: {w: remW, h: placedH, type: 'cut', cutEdges: {l: true, t: false, r: srcTile.cutEdges ? srcTile.cutEdges.r : false, b: false}}});
+    }
+    if (remH > 1 && sw > 1) {
+      toolbox.push({tile: {w: sw, h: remH, type: 'cut', cutEdges: {l: false, t: true, r: false, b: srcTile.cutEdges ? srcTile.cutEdges.b : false}}});
+    }
+    consolidateToolbox();
+  }
+  return true;
+}
+
 // ===== MOUSE =====
 const DT=5;
 function isOverXBtn(sx,sy,t){
@@ -625,22 +662,10 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
     if(ht){const t=simResults.rooms[ht.ri].tiles[ht.ti];
       if(t.type==='unfilled'){
         const hd=heldDims();
-        const TOL=0.125;
-        const fits=hd.w<=t.w+TOL&&hd.h<=t.h+TOL;
-        const canCut=hd.w>=t.w-TOL&&hd.h>=t.h-TOL;
-        if(fits){
-          t.w=hd.w;t.h=hd.h;t.type=heldTile.tile.type;t.cutEdges=heldTile.tile.cutEdges;t._reallocated=true;
+        const srcTile={w:hd.w,h:hd.h,type:heldTile.tile.type,cutEdges:heldTile.tile.cutEdges};
+        if(placeTileInSlot(srcTile,t)){
           toolbox.splice(heldTile._idx,1);heldTile=null;
-        }else if(canCut){
-          // Cut to fit — place the needed portion, remainder to toolbox
-          t.type='cut';t.cutEdges={l:false,t:false,r:hd.w>t.w+TOL,b:hd.h>t.h+TOL};t._reallocated=true;
-          const remW=hd.w-t.w,remH=hd.h-t.h;
-          toolbox.splice(heldTile._idx,1);
-          if(remW>1&&t.h>1)toolbox.push({tile:{w:remW,h:t.h,type:'cut',cutEdges:{l:true,t:false,r:false,b:false}}});
-          if(remH>1&&hd.w>1)toolbox.push({tile:{w:hd.w,h:remH,type:'cut',cutEdges:{l:false,t:true,r:false,b:false}}});
-          heldTile=null;consolidateToolbox();
-        }
-        heldRotated=false;updateToolbox();renderStats();qr();return}}
+          heldRotated=false;updateToolbox();renderStats();qr();return}}}
     heldTile=null;heldRotated=false;updateToolbox();qr();return}
   // Budget mode: X button or start drag
   if(isBM&&hoverTile){
@@ -707,8 +732,9 @@ C.addEventListener('mouseup',e=>{
       if(drop&&!(drop.ri===dragTileInfo.ri&&drop.ti===dragTileInfo.ti)){
         const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
         if(dstT.type==='unfilled'){
-          dstT.w=td.w;dstT.h=td.h;dstT.type=td.type;dstT.cutEdges=td.cutEdges;dstT._reallocated=true;
-          srcT._origType=td.type;srcT.type='unfilled';srcT.cutEdges=null;renderStats()}}}
+          if(placeTileInSlot(td,dstT)){
+            srcT._origType=td.type;srcT.type='unfilled';srcT.cutEdges=null;
+            updateToolbox();renderStats()}}}}
     dragTileInfo=null;C.style.cursor='default';mdPos=null;qr();return}
   if(dragVert>=0){dragVert=-1;dragWallOrients=null;alignGuides=[];C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
   const sx=e.clientX,rm=R(),vs=rm.verts;
