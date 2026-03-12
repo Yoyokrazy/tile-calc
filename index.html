@@ -562,8 +562,8 @@ document.addEventListener('keyup',e=>{ctrlDown=e.ctrlKey||e.metaKey});
 
 // ===== SAVE / LOAD =====
 const SKEY='tilecalc_rooms';
-function getSaved(){try{return JSON.parse(localStorage.getItem(SKEY))||[]}catch{return[]}}
-function setSaved(r){localStorage.setItem(SKEY,JSON.stringify(r))}
+function getSaved(){try{return JSON.parse(localStorage.getItem(SKEY))||[]}catch(e){return[]}}
+function setSaved(r){try{localStorage.setItem(SKEY,JSON.stringify(r))}catch(e){}}
 
 function populateLoad(){const sel=$('savedRooms'),rooms=getSaved();
   sel.innerHTML='<option value="">Load…</option>'+rooms.map((r,i)=>`<option value="${i}">${r.name}</option>`).join('')}
@@ -604,7 +604,8 @@ function resetView(){if(!verts.length){ox=100;oy=100;scale=4;qr();return}
   ox=pad+sw/2-((mnx+mxx)/2)*scale;oy=pad+sh/2-((mny+mxy)/2)*scale;qr()}
 
 window.addEventListener('resize',qr);
-populateLoad();updateModeTag();qr();
+try{populateLoad()}catch(e){}
+updateModeTag();qr();
 </script>
 </body>
 </html>
