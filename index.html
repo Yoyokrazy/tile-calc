@@ -635,7 +635,7 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
     if(t.type!=='unfilled'&&t.type!=='removed'){
       if(isOverXBtn(sx,sy,t)){
         toolbox.push({tile:{...t}});
-        t._origType=t.type;t.type='removed';
+        t._origType=t.type;t.type='unfilled';t.cutEdges=null;
         hoverTile=null;consolidateToolbox();updateToolbox();renderStats();qr();return}
       // Start drag
       dragTileInfo={ri:hoverTile.ri,ti:hoverTile.ti,offX:sx-w2x(t.x),offY:sy-w2y(t.y),pos:null};
@@ -693,7 +693,7 @@ C.addEventListener('mouseup',e=>{
         const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
         if(dstT.type==='unfilled'){
           dstT.type=srcT.type;dstT.cutEdges=srcT.cutEdges;dstT._reallocated=true;
-          srcT._origType=srcT.type;srcT.type='removed';renderStats()}}}
+          srcT._origType=srcT.type;srcT.type='unfilled';srcT.cutEdges=null;renderStats()}}}
     dragTileInfo=null;C.style.cursor='default';mdPos=null;qr();return}
   if(dragVert>=0){dragVert=-1;dragWallOrients=null;alignGuides=[];C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
   const sx=e.clientX,rm=R(),vs=rm.verts;
@@ -787,8 +787,8 @@ function cancelHeld(){heldTile=null;updateToolbox();qr()}
 function clearToolbox(){
   if(!simResults)return;
   for(const rr of simResults.rooms){for(const t of rr.tiles){
-    if(t.type==='removed'&&t._origType){t.type=t._origType;delete t._origType}}}
-  toolbox=[];heldTile=null;updateToolbox();renderStats();qr();
+    if((t.type==='removed'||t.type==='unfilled')&&t._origType){t.type=t._origType;delete t._origType}}}
+  toolbox=[];heldTile=null;heldRotated=false;updateToolbox();renderStats();qr();
 }
 
 // ===== SAVE/LOAD =====
