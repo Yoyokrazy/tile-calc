@@ -7,71 +7,66 @@
 <script>if(location.protocol==='file:')document.title+=' - dev'</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#111;--surface:rgba(20,20,30,0.92);--surface2:#1a1a2a;
-  --border:#333;--text:#ddd;--muted:#888;--accent:#e94560;
-}
-@media(prefers-color-scheme:light){
-  :root{
-    --bg:#f0f0f4;--surface:rgba(255,255,255,0.92);--surface2:#e8e8ee;
-    --border:#ccc;--text:#222;--muted:#666;--accent:#d63050;
-  }
-}
+:root{--bg:#111;--surface:rgba(20,20,30,0.92);--surface2:#1a1a2a;--border:#333;--text:#ddd;--muted:#888;--accent:#e94560}
+@media(prefers-color-scheme:light){:root{--bg:#f0f0f4;--surface:rgba(255,255,255,0.92);--surface2:#e8e8ee;--border:#ccc;--text:#222;--muted:#666;--accent:#d63050}}
 body{overflow:hidden;background:var(--bg);font-family:system-ui,sans-serif;color:var(--text)}
 canvas{display:block}
-#toolbar{position:fixed;top:12px;left:12px;display:flex;gap:8px;align-items:center;
-  background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;
-  backdrop-filter:blur(8px);z-index:10;flex-wrap:wrap;max-width:calc(100vw - 280px)}
+#toolbar{position:fixed;top:12px;left:12px;display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;backdrop-filter:blur(8px);z-index:10;flex-wrap:wrap;max-width:calc(100vw - 300px)}
 #toolbar label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
-#toolbar input,#toolbar select{background:var(--surface2);color:var(--text);border:1px solid var(--border);
-  border-radius:4px;padding:3px 6px;font-size:13px;width:52px}
+#toolbar input,#toolbar select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:13px;width:52px}
 #toolbar select{width:auto;max-width:130px}
 #toolbar .sep{width:1px;height:20px;background:var(--border)}
-button{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:5px 12px;
-  font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+button{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
 button svg{flex-shrink:0}
 button:hover{opacity:.85}
 button.sec{background:var(--border)}
 button.snap-on{background:var(--accent) !important}
 #modeTag{font-size:12px;font-weight:600;color:var(--accent);min-width:50px}
-#coords{position:fixed;bottom:12px;left:12px;font-size:12px;color:var(--muted);
-  background:var(--surface);padding:4px 10px;border-radius:4px;z-index:10}
-#stats{position:fixed;top:12px;right:12px;width:240px;background:var(--surface);
-  border:1px solid var(--border);border-radius:8px;padding:12px;backdrop-filter:blur(8px);
-  z-index:10;display:none;max-height:calc(100vh - 24px);overflow-y:auto}
+#coords{position:fixed;bottom:12px;left:12px;font-size:12px;color:var(--muted);background:var(--surface);padding:4px 10px;border-radius:4px;z-index:10}
+/* Room list panel */
+#roomPanel{position:fixed;top:52px;left:12px;width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;backdrop-filter:blur(8px);z-index:10;max-height:calc(100vh - 72px);overflow-y:auto}
+#roomPanel h3{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.room-item{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;cursor:pointer;font-size:12px;margin-bottom:2px}
+.room-item:hover{background:var(--surface2)}
+.room-item.active{background:var(--surface2);outline:1.5px solid var(--accent)}
+.room-item .swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.room-item .rname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room-item .rpri{font-size:10px;color:var(--muted);width:18px;text-align:center}
+.room-item input.rpri-in{width:28px;font-size:11px;padding:1px 2px;text-align:center;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:3px}
+.room-item .rbtn{opacity:0;font-size:11px;cursor:pointer;background:none;border:none;color:var(--muted);padding:2px}
+.room-item:hover .rbtn{opacity:1}
+#roomPanel .room-actions{display:flex;gap:4px;margin-top:6px}
+#roomPanel .room-actions button{font-size:11px;padding:3px 8px}
+/* Stats */
+#stats{position:fixed;top:12px;right:12px;width:260px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;backdrop-filter:blur(8px);z-index:10;display:none;max-height:calc(100vh - 24px);overflow-y:auto}
 #stats h3{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
 #stats h3.mt{margin-top:12px}
+#stats h4{font-size:12px;margin:10px 0 4px;display:flex;align-items:center;gap:6px}
+#stats h4 .swatch{width:10px;height:10px;border-radius:2px;display:inline-block}
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .st{background:var(--surface2);border-radius:6px;padding:8px}
 .st .v{font-size:18px;font-weight:700}
 .st .l{font-size:10px;color:var(--muted);margin-top:2px}
 .st.hl .v{color:var(--accent)}
 .st.fw{grid-column:1/-1}
+.st.sm .v{font-size:15px}
 .legend{margin-top:10px;display:flex;flex-direction:column;gap:4px}
 .legend-i{display:flex;align-items:center;gap:6px;font-size:11px}
 .legend-s{width:14px;height:14px;border-radius:2px;flex-shrink:0}
-#wallInput{position:fixed;z-index:20;display:none;background:var(--surface);
-  border:1px solid var(--accent);border-radius:6px;padding:6px 10px;transform:translate(-50%,-140%)}
-#wallInput input{background:transparent;border:none;color:var(--text);font-size:15px;
-  width:90px;text-align:center;outline:none;font-weight:700}
+#wallInput{position:fixed;z-index:20;display:none;background:var(--surface);border:1px solid var(--accent);border-radius:6px;padding:6px 10px;transform:translate(-50%,-140%)}
+#wallInput input{background:transparent;border:none;color:var(--text);font-size:15px;width:90px;text-align:center;outline:none;font-weight:700}
 #wallInput .hint{font-size:10px;color:var(--muted);text-align:center}
-#help{position:fixed;bottom:12px;right:12px;font-size:11px;color:var(--muted);
-  background:var(--surface);padding:8px 12px;border-radius:6px;z-index:10;
-  line-height:1.7;max-width:280px}
+#help{position:fixed;bottom:12px;right:12px;font-size:11px;color:var(--muted);background:var(--surface);padding:8px 12px;border-radius:6px;z-index:10;line-height:1.7;max-width:260px}
 #help kbd{background:var(--surface2);border:1px solid var(--border);border-radius:2px;padding:0 3px;font-family:inherit}
 #saveOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:25}
-#saveDialog{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;
-  z-index:30;min-width:280px}
+#saveDialog{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;z-index:30;min-width:280px}
 #saveDialog h3{font-size:14px;margin-bottom:12px}
-#saveDialog input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;
-  padding:8px 10px;color:var(--text);font-size:14px;outline:none}
+#saveDialog input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:8px 10px;color:var(--text);font-size:14px;outline:none}
 #saveDialog input:focus{border-color:var(--accent)}
 #saveDialog .btns{display:flex;gap:8px;margin-top:12px}
 </style>
 </head>
 <body>
-
 <canvas id="c"></canvas>
 
 <div id="toolbar">
@@ -89,48 +84,24 @@ button.snap-on{background:var(--accent) !important}
   <input id="tab" type="number" value="0.25" min="0" max="2" step="0.0625" style="width:56px">
   <span style="font-size:11px;color:var(--muted)">in</span>
   <div class="sep"></div>
-  <button onclick="simulate()"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg> Simulate</button>
-  <button class="sec" onclick="openSaveDialog()" title="Save room"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/></svg></button>
-  <select id="savedRooms" onchange="loadRoom()">
-    <option value="">Load</option>
-  </select>
-  <button class="sec" onclick="deleteRoom()" title="Delete saved room"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"/></svg></button>
+  <label>Budget</label>
+  <input id="budget" type="number" placeholder="∞" min="0" step="1" style="width:52px" title="Max tiles available (blank = unlimited)">
   <div class="sep"></div>
-  <button class="sec" onclick="clearAll()"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></svg> Clear</button>
+  <button onclick="simulate()"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg> Simulate</button>
+  <button class="sec" onclick="openSaveDialog()" title="Save project"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/></svg></button>
+  <select id="savedProjects" onchange="loadProject()"><option value="">Load</option></select>
+  <button class="sec" onclick="deleteProject()" title="Delete saved"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"/></svg></button>
+  <div class="sep"></div>
   <button class="sec" onclick="resetView()"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 10a.75.75 0 0 1 .75.75v2.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 1 13.25v-2.5a.75.75 0 0 1 .75-.75Zm12.5 0a.75.75 0 0 1 .75.75v2.5A1.75 1.75 0 0 1 13.25 15h-2.5a.75.75 0 0 1 0-1.5h2.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 .75-.75ZM2.75 2.5a.25.25 0 0 0-.25.25v2.5a.75.75 0 0 1-1.5 0v-2.5C1 1.784 1.784 1 2.75 1h2.5a.75.75 0 0 1 0 1.5ZM10 1.75a.75.75 0 0 1 .75-.75h2.5c.966 0 1.75.784 1.75 1.75v2.5a.75.75 0 0 1-1.5 0v-2.5a.25.25 0 0 0-.25-.25h-2.5a.75.75 0 0 1-.75-.75Z"/></svg> Fit</button>
 </div>
 
-<div id="coords">0" , 0"</div>
-
-<div id="stats">
-  <h3>Tiles</h3>
-  <div class="sg">
-    <div class="st hl fw"><div class="v" id="sToBuy">—</div><div class="l">Tiles to buy</div></div>
-    <div class="st"><div class="v" id="sFull">—</div><div class="l">Full tiles</div></div>
-    <div class="st"><div class="v" id="sCut">—</div><div class="l">Cut (new tile)</div></div>
-    <div class="st"><div class="v" id="sReused">—</div><div class="l">Offcuts reused</div></div>
-    <div class="st"><div class="v" id="sSplit">—</div><div class="l">Tiles split → 2 pcs</div></div>
-    <div class="st"><div class="v" id="sWaste">—</div><div class="l">Waste</div></div>
-  </div>
-  <h3 class="mt">Border &amp; Endcaps</h3>
-  <div class="sg">
-    <div class="st"><div class="v" id="sEdge">—</div><div class="l">Wall edge strips</div></div>
-    <div class="st"><div class="v" id="sCutEdge">—</div><div class="l">Cut-edge endcaps</div></div>
-    <div class="st"><div class="v" id="sOutC">—</div><div class="l">Outside corners</div></div>
-    <div class="st"><div class="v" id="sInC">—</div><div class="l">Inside corners</div></div>
-  </div>
-  <h3 class="mt">Room</h3>
-  <div class="sg">
-    <div class="st"><div class="v" id="sRoom">—</div><div class="l">Room ft²</div></div>
-    <div class="st"><div class="v" id="sPerim">—</div><div class="l">Perimeter</div></div>
-  </div>
-  <div class="legend">
-    <div class="legend-i"><div class="legend-s" style="background:#4a90d9"></div>Full tile</div>
-    <div class="legend-i"><div class="legend-s" style="background:#e6a23c"></div>Cut (new tile)</div>
-    <div class="legend-i"><div class="legend-s" style="background:#67c23a"></div>Reused offcut</div>
-    <div class="legend-i"><div class="legend-s" style="background:transparent;border:2px dashed #f56c6c"></div>Cut edge (needs endcap)</div>
-  </div>
+<div id="roomPanel">
+  <h3>Rooms <button class="sec" onclick="addRoom()" style="font-size:10px;padding:2px 6px">+ Add</button></h3>
+  <div id="roomList"></div>
 </div>
+
+<div id="coords">0" , 0"</div>
+<div id="stats"></div>
 
 <div id="wallInput">
   <input id="wlIn" type="text" placeholder="length">
@@ -139,8 +110,8 @@ button.snap-on{background:var(--accent) !important}
 
 <div id="saveOverlay" onclick="closeSaveDialog()"></div>
 <div id="saveDialog">
-  <h3>Save Room</h3>
-  <input id="saveName" type="text" placeholder="e.g. Living Room" autocomplete="off">
+  <h3>Save Project</h3>
+  <input id="saveName" type="text" placeholder="e.g. Basement" autocomplete="off">
   <div class="btns">
     <button onclick="confirmSave()">Save</button>
     <button class="sec" onclick="closeSaveDialog()">Cancel</button>
@@ -157,118 +128,107 @@ button.snap-on{background:var(--accent) !important}
 </div>
 
 <script>
-const $ = id => document.getElementById(id);
-const C = $('c'), ctx = C.getContext('2d');
+const $=id=>document.getElementById(id);
+const C=$('c'),ctx=C.getContext('2d');
 function isLight(){return matchMedia('(prefers-color-scheme:light)').matches}
 
-// ===== STATE =====
-let verts = [];
-let closed = false;
-let drawFrom = -1;
-let scale = 4;
-let ox = 100, oy = 100;
+// ===== ROOM COLORS =====
+const ROOM_COLORS=['#4a90d9','#e6a23c','#67c23a','#e94560','#9b59b6','#1abc9c','#e67e22','#3498db'];
 
-let snapMode = true;
-let hoverVert = -1, hoverWall = -1;
-let selWall = -1;
-let dragVert = -1, dragWallOrients = null;
-let panning = false, panSX = 0, panSY = 0, panOX = 0, panOY = 0;
-let ctrlDown = false;
-let ghostSnap = null;
-let alignGuides = []; // {axis:'x'|'y', val: world coord, fromVert: index}
-let mdPos = null, mdVert = -1, mdWall = -1, didDrag = false;
-let tiles = [], simulated = false;
+// ===== MULTI-ROOM STATE =====
+let rooms=[{name:'Room 1',verts:[],closed:false,priority:1,color:ROOM_COLORS[0]}];
+let activeRoom=0;
+let drawFrom=-1;
+let scale=4,ox=100,oy=100;
+let snapMode=true;
+let hoverVert=-1,hoverWall=-1,selWall=-1;
+let dragVert=-1,dragWallOrients=null;
+let panning=false,panSX=0,panSY=0,panOX=0,panOY=0;
+let ctrlDown=false,ghostSnap=null,alignGuides=[];
+let mdPos=null,mdVert=-1,mdWall=-1,didDrag=false;
+let simResults=null; // {rooms:[{tiles,stats}],totals}
 
-function shouldSnap() { return snapMode || ctrlDown; }
+function R(){return rooms[activeRoom]}
+function shouldSnap(){return snapMode||ctrlDown}
 
-// ===== COORD TRANSFORMS =====
-function w2x(wx) { return wx * scale + ox; }
-function w2y(wy) { return wy * scale + oy; }
-function s2wx(sx) { return (sx - ox) / scale; }
-function s2wy(sy) { return (sy - oy) / scale; }
-function snp(v) { return Math.round(v); }
-function distV(a, b) { return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2); }
+// ===== COORD =====
+function w2x(wx){return wx*scale+ox}
+function w2y(wy){return wy*scale+oy}
+function s2wx(sx){return(sx-ox)/scale}
+function s2wy(sy){return(sy-oy)/scale}
+function snp(v){return Math.round(v)}
+function distV(a,b){return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2)}
+function fmtIn(inches){const a=Math.abs(inches),ft=Math.floor(a/12),rem=a%12,s=inches<0?'-':'';if(ft===0)return s+(rem%1?rem.toFixed(1):Math.round(rem))+'"';if(rem<.05)return s+ft+"'";return s+ft+"' "+(rem%1?rem.toFixed(1):Math.round(rem))+'"'}
+function fmtFtIn(inches){const ft=Math.floor(inches/12),rem=inches%12;if(rem<.05)return ft+' ft';return ft+"'"+Math.round(rem)+'"'}
+function parseLen(s){s=s.trim();let m=s.match(/^(\d+\.?\d*)\s*'\s*(\d+\.?\d*)?\s*"?\s*$/);if(m)return parseFloat(m[1])*12+(m[2]?parseFloat(m[2]):0);m=s.match(/^(\d+\.?\d*)\s*"$/);if(m)return parseFloat(m[1]);m=s.match(/^(\d+\.?\d*)\s*'$/);if(m)return parseFloat(m[1])*12;const n=parseFloat(s);return isNaN(n)?null:n}
 
-function fmtIn(inches) {
-  const a = Math.abs(inches);
-  const ft = Math.floor(a / 12), rem = a % 12;
-  const s = inches < 0 ? '-' : '';
-  if (ft === 0) return s + (rem % 1 ? rem.toFixed(1) : Math.round(rem)) + '"';
-  if (rem < 0.05) return s + ft + "'";
-  return s + ft + "' " + (rem % 1 ? rem.toFixed(1) : Math.round(rem)) + '"';
+function constrainHV(wx,wy,from){
+  if(!shouldSnap()||!from)return{x:snp(wx),y:snp(wy)};
+  const sx=snp(wx),sy=snp(wy);
+  return Math.abs(sx-from.x)>=Math.abs(sy-from.y)?{x:sx,y:from.y}:{x:from.x,y:sy};
 }
-
-function fmtFtIn(inches) {
-  const ft = Math.floor(inches / 12), rem = inches % 12;
-  if (rem < 0.05) return ft + ' ft';
-  return ft + "'" + Math.round(rem) + '"';
+const ALIGN_THRESH_PX=10;
+function alignSnap(wx,wy,excludeIdx){
+  alignGuides=[];if(!shouldSnap())return{x:snp(wx),y:snp(wy)};
+  let sx=snp(wx),sy=snp(wy),bestDx=ALIGN_THRESH_PX/scale,bestDy=ALIGN_THRESH_PX/scale,snapX=null,snapY=null;
+  // Check all verts in active room
+  const vs=R().verts;
+  for(let i=0;i<vs.length;i++){if(i===excludeIdx)continue;const v=vs[i];
+    const dx=Math.abs(sx-v.x),dy=Math.abs(sy-v.y);
+    if(dx<bestDx&&dy>.5){bestDx=dx;snapX=v.x}
+    if(dy<bestDy&&dx>.5){bestDy=dy;snapY=v.y}}
+  if(snapX!==null){sx=snapX;alignGuides.push({axis:'x',val:snapX})}
+  if(snapY!==null){sy=snapY;alignGuides.push({axis:'y',val:snapY})}
+  return{x:sx,y:sy};
 }
+function wallOrient(a,b){return Math.abs(a.x-b.x)>=Math.abs(a.y-b.y)?'h':'v'}
+function closeTarget(){return drawFrom===0?R().verts.length-1:0}
+function isEndVertex(i){return i===0||i===R().verts.length-1}
+function updateModeTag(){const r=R();if(r.closed)$('modeTag').textContent='EDIT';else if(drawFrom>=0)$('modeTag').textContent='DRAW';else $('modeTag').textContent=r.verts.length>0?'PAUSED':'DRAW'}
+function toggleSnap(){snapMode=!snapMode;$('snapBtn').classList.toggle('snap-on',snapMode);$('snapBtn').style.background=snapMode?'':'#333'}
 
-function parseLen(s) {
-  s = s.trim();
-  let m = s.match(/^(\d+\.?\d*)\s*'\s*(\d+\.?\d*)?\s*"?\s*$/);
-  if (m) return parseFloat(m[1]) * 12 + (m[2] ? parseFloat(m[2]) : 0);
-  m = s.match(/^(\d+\.?\d*)\s*"$/);
-  if (m) return parseFloat(m[1]);
-  m = s.match(/^(\d+\.?\d*)\s*'$/);
-  if (m) return parseFloat(m[1]) * 12;
-  const n = parseFloat(s); return isNaN(n) ? null : n;
+// ===== ROOM LIST UI =====
+function renderRoomList(){
+  const el=$('roomList');
+  el.innerHTML=rooms.map((r,i)=>`<div class="room-item${i===activeRoom?' active':''}" onclick="switchRoom(${i})">
+    <div class="swatch" style="background:${r.color}"></div>
+    <span class="rname">${r.name}</span>
+    <input class="rpri-in" type="number" value="${r.priority}" min="1" max="99" title="Priority (1=highest)"
+      onclick="event.stopPropagation()" onchange="rooms[${i}].priority=parseInt(this.value)||1">
+    <button class="rbtn" onclick="event.stopPropagation();renameRoom(${i})" title="Rename">✎</button>
+    <button class="rbtn" onclick="event.stopPropagation();removeRoom(${i})" title="Delete">×</button>
+  </div>`).join('');
 }
-
-function constrainHV(wx, wy, from) {
-  if (!shouldSnap() || !from) return { x: snp(wx), y: snp(wy) };
-  const sx = snp(wx), sy = snp(wy);
-  return Math.abs(sx - from.x) >= Math.abs(sy - from.y)
-    ? { x: sx, y: from.y } : { x: from.x, y: sy };
+function switchRoom(i){
+  activeRoom=i;drawFrom=-1;ghostSnap=null;selWall=-1;hoverVert=-1;hoverWall=-1;
+  simResults=null;updateModeTag();renderRoomList();qr();
 }
-
-// Snap to other vertex alignment within a screen-pixel threshold
-const ALIGN_THRESH_PX = 10;
-function alignSnap(wx, wy, excludeIdx) {
-  alignGuides = [];
-  if (!shouldSnap()) return { x: snp(wx), y: snp(wy) };
-  let sx = snp(wx), sy = snp(wy);
-  let bestDx = ALIGN_THRESH_PX / scale, bestDy = ALIGN_THRESH_PX / scale;
-  let snapX = null, snapY = null, snapXFrom = -1, snapYFrom = -1;
-  for (let i = 0; i < verts.length; i++) {
-    if (i === excludeIdx) continue;
-    const v = verts[i];
-    const dx = Math.abs(sx - v.x), dy = Math.abs(sy - v.y);
-    if (dx < bestDx && dy > 0.5) { bestDx = dx; snapX = v.x; snapXFrom = i; }
-    if (dy < bestDy && dx > 0.5) { bestDy = dy; snapY = v.y; snapYFrom = i; }
-  }
-  if (snapX !== null) { sx = snapX; alignGuides.push({ axis: 'x', val: snapX, fromVert: snapXFrom }); }
-  if (snapY !== null) { sy = snapY; alignGuides.push({ axis: 'y', val: snapY, fromVert: snapYFrom }); }
-  return { x: sx, y: sy };
+function addRoom(){
+  const n=rooms.length;
+  rooms.push({name:'Room '+(n+1),verts:[],closed:false,priority:n+1,color:ROOM_COLORS[n%ROOM_COLORS.length]});
+  switchRoom(rooms.length-1);
 }
-
-function wallOrient(a, b) { return Math.abs(a.x - b.x) >= Math.abs(a.y - b.y) ? 'h' : 'v'; }
-function closeTarget() { return drawFrom === 0 ? verts.length - 1 : 0; }
-function isEndVertex(i) { return i === 0 || i === verts.length - 1; }
-
-function updateModeTag() {
-  if (closed) $('modeTag').textContent = 'EDIT';
-  else if (drawFrom >= 0) $('modeTag').textContent = 'DRAW';
-  else $('modeTag').textContent = verts.length > 0 ? 'PAUSED' : 'DRAW';
+function removeRoom(i){
+  if(rooms.length<=1)return;
+  rooms.splice(i,1);
+  if(activeRoom>=rooms.length)activeRoom=rooms.length-1;
+  switchRoom(activeRoom);
 }
-
-function toggleSnap() {
-  snapMode = !snapMode;
-  $('snapBtn').classList.toggle('snap-on', snapMode);
-  $('snapBtn').style.background = snapMode ? '' : '#333';
+function renameRoom(i){
+  const name=prompt('Room name:',rooms[i].name);
+  if(name&&name.trim()){rooms[i].name=name.trim();renderRoomList()}
 }
 
 // ===== GRID =====
-function drawGrid() {
-  const W = C.width, H = C.height, lt = isLight();
-  const wx0 = s2wx(0), wx1 = s2wx(W), wy0 = s2wy(0), wy1 = s2wy(H);
-  const spacings = [1,2,3,6,12,24,60,120,240,600];
-  let minor = 12;
-  for (const sp of spacings) { if (sp * scale >= 20) { minor = sp; break; } }
-  const major = minor < 12 ? 12 : (minor <= 12 ? 60 : minor * 5);
-  ctx.strokeStyle = lt ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
-  let s = Math.floor(wx0/minor)*minor;
-  for (let x=s;x<=wx1;x+=minor){const sx=w2x(x);ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke()}
+function drawGrid(){
+  const W=C.width,H=C.height,lt=isLight();
+  const wx0=s2wx(0),wx1=s2wx(W),wy0=s2wy(0),wy1=s2wy(H);
+  const spacings=[1,2,3,6,12,24,60,120,240,600];
+  let minor=12;for(const sp of spacings){if(sp*scale>=20){minor=sp;break}}
+  const major=minor<12?12:(minor<=12?60:minor*5);
+  ctx.strokeStyle=lt?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)';ctx.lineWidth=.5;
+  let s=Math.floor(wx0/minor)*minor;
+  for(let x=s;x<=wx1;x+=minor){const sx=w2x(x);ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke()}
   s=Math.floor(wy0/minor)*minor;
   for(let y=s;y<=wy1;y+=minor){const sy=w2y(y);ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke()}
   ctx.strokeStyle=lt?'rgba(0,0,0,0.15)':'rgba(255,255,255,0.12)';ctx.lineWidth=1;
@@ -288,14 +248,11 @@ function drawGrid() {
 }
 
 // ===== MEASUREMENT PILLS =====
-function drawMeasurement(ax,ay,bx,by,wallIdx){
+function drawMeasurement(ax,ay,bx,by,wallIdx,isSel){
   const len=Math.sqrt((bx-ax)**2+(by-ay)**2);if(len<1)return;
-  const lt=isLight();
-  const sx1=w2x(ax),sy1=w2y(ay),sx2=w2x(bx),sy2=w2y(by);
-  const mx=(sx1+sx2)/2,my=(sy1+sy2)/2;
-  const isH=Math.abs(bx-ax)>Math.abs(by-ay),isSel=wallIdx===selWall;
-  const text=fmtIn(len);
-  const fs=Math.max(12,Math.min(15,scale*3.5));
+  const lt=isLight(),sx1=w2x(ax),sy1=w2y(ay),sx2=w2x(bx),sy2=w2y(by);
+  const mx=(sx1+sx2)/2,my=(sy1+sy2)/2,isH=Math.abs(bx-ax)>Math.abs(by-ay);
+  const text=fmtIn(len),fs=Math.max(12,Math.min(15,scale*3.5));
   ctx.font=`700 ${fs}px system-ui`;
   const tw=ctx.measureText(text).width,pw=tw+14,ph=fs+10;
   const offX=isH?0:-(pw/2+10),offY=isH?-(ph/2+10):0;
@@ -305,160 +262,125 @@ function drawMeasurement(ax,ay,bx,by,wallIdx){
   ctx.strokeStyle=isSel?'#e94560':(lt?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.35)');ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(px,py,pw,ph,5);ctx.stroke();
   ctx.fillStyle=isSel||!lt?'#fff':'#222';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(text,mx+offX,my+offY);
-  ctx.textAlign='start';ctx.textBaseline='alphabetic';
+  ctx.fillText(text,mx+offX,my+offY);ctx.textAlign='start';ctx.textBaseline='alphabetic';
 }
 
-// ===== ROOM RENDERING =====
-function drawRoom(){
-  if(!verts.length)return;const n=verts.length;const lt=isLight();
-  if(closed){ctx.fillStyle=lt?'rgba(80,130,190,0.2)':'rgba(40,60,90,0.35)';ctx.beginPath();
-    ctx.moveTo(w2x(verts[0].x),w2y(verts[0].y));
-    for(let i=1;i<n;i++)ctx.lineTo(w2x(verts[i].x),w2y(verts[i].y));
-    ctx.closePath();ctx.fill()}
-  const wc=closed?n:n-1;
-  for(let i=0;i<wc;i++){const a=verts[i],b=verts[(i+1)%n];
-    const sel=i===selWall,hov=i===hoverWall;
-    ctx.strokeStyle=sel?'#e94560':hov?(lt?'#333':'#fff'):(lt?'rgba(0,0,0,0.6)':'rgba(255,255,255,0.7)');
-    ctx.lineWidth=sel?3:hov?2.5:1.5;
-    ctx.beginPath();ctx.moveTo(w2x(a.x),w2y(a.y));ctx.lineTo(w2x(b.x),w2y(b.y));ctx.stroke()}
-  for(let i=0;i<wc;i++){const a=verts[i],b=verts[(i+1)%n];drawMeasurement(a.x,a.y,b.x,b.y,i)}
-
-  if(drawFrom>=0&&!closed&&ghostSnap){
-    const from=verts[drawFrom];
-    ctx.strokeStyle='rgba(233,69,96,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
-    ctx.beginPath();ctx.moveTo(w2x(from.x),w2y(from.y));
-    ctx.lineTo(w2x(ghostSnap.x),w2y(ghostSnap.y));ctx.stroke();ctx.setLineDash([]);
-    const gl=distV(from,ghostSnap);
-    if(gl>0){const gmx=(w2x(from.x)+w2x(ghostSnap.x))/2,gmy=(w2y(from.y)+w2y(ghostSnap.y))/2;
-      const text=fmtIn(gl);ctx.font='700 13px system-ui';
-      const tw2=ctx.measureText(text).width,pw2=tw2+12,ph2=21;
-      ctx.fillStyle='rgba(233,69,96,0.85)';ctx.beginPath();ctx.roundRect(gmx-pw2/2,gmy-ph2-6,pw2,ph2,4);ctx.fill();
-      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(text,gmx,gmy-ph2/2-6);ctx.textAlign='start';ctx.textBaseline='alphabetic'}}
-
-  const ct=(!closed&&drawFrom>=0&&n>2)?closeTarget():-1;
-  for(let i=0;i<n;i++){const v=verts[i],sx=w2x(v.x),sy=w2y(v.y);
-    const isH2=i===hoverVert,isCl=i===ct,isAct=i===drawFrom&&!closed;
-    const r=isH2?7:(isAct||isCl)?6:4;
-    ctx.fillStyle=isCl?'#e94560':isAct?'#4a90d9':isH2?(lt?'#333':'#fff'):(lt?'#555':'#ccc');
-    ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();
-    if(isCl&&isH2){ctx.strokeStyle='#e94560';ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke()}
-    if(isAct){ctx.strokeStyle='#4a90d9';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,9,0,Math.PI*2);ctx.stroke()}}
-
-  if(drawFrom>=0&&!closed&&ghostSnap){const gx=w2x(ghostSnap.x),gy=w2y(ghostSnap.y);
-    ctx.strokeStyle='rgba(233,69,96,0.4)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(gx-8,gy);ctx.lineTo(gx+8,gy);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(gx,gy-8);ctx.lineTo(gx,gy+8);ctx.stroke()}
-
-  // Alignment guide lines
-  if(alignGuides.length>0){
-    const W=C.width,H=C.height;
-    ctx.setLineDash([4,4]);ctx.lineWidth=1;
-    ctx.strokeStyle=lt?'rgba(80,160,230,0.5)':'rgba(80,160,230,0.4)';
-    for(const g of alignGuides){
-      if(g.axis==='x'){const sx2=w2x(g.val);ctx.beginPath();ctx.moveTo(sx2,0);ctx.lineTo(sx2,H);ctx.stroke()}
+// ===== RENDER ALL ROOMS =====
+function drawRooms(){
+  const lt=isLight();
+  for(let ri=0;ri<rooms.length;ri++){
+    const rm=rooms[ri],vs=rm.verts,n=vs.length,isActive=ri===activeRoom;
+    if(n===0)continue;
+    const alpha=isActive?1:.4;
+    // Fill
+    if(rm.closed){ctx.fillStyle=rm.color+'30';ctx.beginPath();
+      ctx.moveTo(w2x(vs[0].x),w2y(vs[0].y));
+      for(let i=1;i<n;i++)ctx.lineTo(w2x(vs[i].x),w2y(vs[i].y));
+      ctx.closePath();ctx.fill()}
+    // Walls
+    const wc=rm.closed?n:n-1;
+    for(let i=0;i<wc;i++){const a=vs[i],b=vs[(i+1)%n];
+      const sel=isActive&&i===selWall,hov=isActive&&i===hoverWall;
+      ctx.globalAlpha=alpha;
+      ctx.strokeStyle=sel?'#e94560':hov?(lt?'#333':'#fff'):rm.color;
+      ctx.lineWidth=sel?3:hov?2.5:(isActive?1.5:1);
+      ctx.beginPath();ctx.moveTo(w2x(a.x),w2y(a.y));ctx.lineTo(w2x(b.x),w2y(b.y));ctx.stroke();
+      ctx.globalAlpha=1}
+    // Measurements (only active room)
+    if(isActive){for(let i=0;i<wc;i++){const a=vs[i],b=vs[(i+1)%n];drawMeasurement(a.x,a.y,b.x,b.y,i,i===selWall)}}
+    // Room label
+    if(rm.closed&&n>2){
+      let cx=0,cy=0;for(const v of vs){cx+=v.x;cy+=v.y}
+      cx/=n;cy/=n;
+      ctx.globalAlpha=isActive?.7:.35;
+      ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=rm.color;ctx.fillText(rm.name,w2x(cx),w2y(cy));
+      ctx.globalAlpha=1;ctx.textAlign='start';ctx.textBaseline='alphabetic'}
+    // Ghost line (active only)
+    if(isActive&&drawFrom>=0&&!rm.closed&&ghostSnap){
+      const from=vs[drawFrom];
+      ctx.strokeStyle='rgba(233,69,96,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
+      ctx.beginPath();ctx.moveTo(w2x(from.x),w2y(from.y));
+      ctx.lineTo(w2x(ghostSnap.x),w2y(ghostSnap.y));ctx.stroke();ctx.setLineDash([]);
+      const gl=distV(from,ghostSnap);
+      if(gl>0){const gmx=(w2x(from.x)+w2x(ghostSnap.x))/2,gmy=(w2y(from.y)+w2y(ghostSnap.y))/2;
+        const text=fmtIn(gl);ctx.font='700 13px system-ui';const tw2=ctx.measureText(text).width,pw2=tw2+12,ph2=21;
+        ctx.fillStyle='rgba(233,69,96,0.85)';ctx.beginPath();ctx.roundRect(gmx-pw2/2,gmy-ph2-6,pw2,ph2,4);ctx.fill();
+        ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(text,gmx,gmy-ph2/2-6);ctx.textAlign='start';ctx.textBaseline='alphabetic'}}
+    // Vertices (active only, or small dots for inactive)
+    for(let i=0;i<n;i++){const v=vs[i],sx=w2x(v.x),sy=w2y(v.y);
+      if(isActive){
+        const ct=(!rm.closed&&drawFrom>=0&&n>2)?closeTarget():-1;
+        const isH2=i===hoverVert,isCl=i===ct,isAct2=i===drawFrom&&!rm.closed;
+        const r=isH2?7:(isAct2||isCl)?6:4;
+        ctx.fillStyle=isCl?'#e94560':isAct2?'#4a90d9':isH2?(lt?'#333':'#fff'):(lt?'#555':'#ccc');
+        ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();
+        if(isCl&&isH2){ctx.strokeStyle='#e94560';ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke()}
+        if(isAct2){ctx.strokeStyle='#4a90d9';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,9,0,Math.PI*2);ctx.stroke()}
+      }else{ctx.fillStyle=rm.color;ctx.globalAlpha=.35;
+        ctx.beginPath();ctx.arc(sx,sy,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}}
+    // Snap cursor
+    if(isActive&&drawFrom>=0&&!rm.closed&&ghostSnap){const gx=w2x(ghostSnap.x),gy=w2y(ghostSnap.y);
+      ctx.strokeStyle='rgba(233,69,96,0.4)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(gx-8,gy);ctx.lineTo(gx+8,gy);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(gx,gy-8);ctx.lineTo(gx,gy+8);ctx.stroke()}
+  }
+  // Alignment guides
+  if(alignGuides.length>0){const W=C.width,H=C.height,lt2=isLight();
+    ctx.setLineDash([4,4]);ctx.lineWidth=1;ctx.strokeStyle=lt2?'rgba(80,160,230,0.5)':'rgba(80,160,230,0.4)';
+    for(const g of alignGuides){if(g.axis==='x'){const sx2=w2x(g.val);ctx.beginPath();ctx.moveTo(sx2,0);ctx.lineTo(sx2,H);ctx.stroke()}
       else{const sy2=w2y(g.val);ctx.beginPath();ctx.moveTo(0,sy2);ctx.lineTo(W,sy2);ctx.stroke()}}
     ctx.setLineDash([])}
 }
 
+// ===== TILES =====
 function drawTiles(){
-  if(!simulated)return;
-  const lt=isLight();
-  for(const t of tiles){
+  if(!simResults)return;const lt=isLight();
+  for(const rr of simResults.rooms){for(const t of rr.tiles){
     const sx=w2x(t.x),sy=w2y(t.y),sw=t.w*scale,sh=t.h*scale;
-    // Fill
-    if(t.type==='full') ctx.fillStyle=lt?'rgba(74,144,217,0.3)':'rgba(74,144,217,0.45)';
-    else if(t.type==='cut') ctx.fillStyle=lt?'rgba(230,162,60,0.3)':'rgba(230,162,60,0.45)';
-    else ctx.fillStyle=lt?'rgba(103,194,58,0.3)':'rgba(103,194,58,0.45)';
+    if(t.type==='full')ctx.fillStyle=lt?'rgba(74,144,217,0.3)':'rgba(74,144,217,0.45)';
+    else if(t.type==='cut')ctx.fillStyle=lt?'rgba(230,162,60,0.3)':'rgba(230,162,60,0.45)';
+    else if(t.type==='reused')ctx.fillStyle=lt?'rgba(103,194,58,0.3)':'rgba(103,194,58,0.45)';
+    else ctx.fillStyle=lt?'rgba(200,50,50,0.1)':'rgba(200,50,50,0.15)'; // unfilled
     ctx.fillRect(sx,sy,sw,sh);
-    // Tile outline — clear visible border
-    if(t.type==='full') ctx.strokeStyle=lt?'rgba(50,110,180,0.6)':'rgba(100,170,230,0.5)';
-    else if(t.type==='cut') ctx.strokeStyle=lt?'rgba(190,130,30,0.6)':'rgba(240,180,80,0.5)';
+    if(t.type==='unfilled'){ctx.strokeStyle=lt?'rgba(200,50,50,0.3)':'rgba(200,50,50,0.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeRect(sx,sy,sw,sh);ctx.setLineDash([]);continue}
+    if(t.type==='full')ctx.strokeStyle=lt?'rgba(50,110,180,0.6)':'rgba(100,170,230,0.5)';
+    else if(t.type==='cut')ctx.strokeStyle=lt?'rgba(190,130,30,0.6)':'rgba(240,180,80,0.5)';
     else ctx.strokeStyle=lt?'rgba(70,160,40,0.6)':'rgba(120,210,80,0.5)';
-    ctx.lineWidth=Math.max(1,scale*0.15);
-    ctx.strokeRect(sx+0.5,sy+0.5,sw-1,sh-1);
-    // Cut edges — dashed red lines
+    ctx.lineWidth=Math.max(1,scale*.15);ctx.strokeRect(sx+.5,sy+.5,sw-1,sh-1);
     if(t.cutEdges){const ce=t.cutEdges;
-      ctx.strokeStyle='rgba(245,80,80,0.85)';ctx.lineWidth=Math.max(2,scale*0.35);ctx.setLineDash([4,3]);
+      ctx.strokeStyle='rgba(245,80,80,0.85)';ctx.lineWidth=Math.max(2,scale*.35);ctx.setLineDash([4,3]);
       if(ce.l){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx,sy+sh);ctx.stroke()}
       if(ce.r){ctx.beginPath();ctx.moveTo(sx+sw,sy);ctx.lineTo(sx+sw,sy+sh);ctx.stroke()}
       if(ce.t){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+sw,sy);ctx.stroke()}
       if(ce.b){ctx.beginPath();ctx.moveTo(sx,sy+sh);ctx.lineTo(sx+sw,sy+sh);ctx.stroke()}
-      ctx.setLineDash([])}}
+      ctx.setLineDash([])}}}
 }
 
-function render(){C.width=innerWidth;C.height=innerHeight;ctx.clearRect(0,0,C.width,C.height);drawGrid();drawTiles();drawRoom()}
+function render(){C.width=innerWidth;C.height=innerHeight;ctx.clearRect(0,0,C.width,C.height);drawGrid();drawTiles();drawRooms()}
 let rq=false;function qr(){if(!rq){rq=true;requestAnimationFrame(()=>{rq=false;render()})}}
 
-// ===== HIT TESTING =====
-function hitVertex(sx,sy,th=14){for(let i=0;i<verts.length;i++)if((w2x(verts[i].x)-sx)**2+(w2y(verts[i].y)-sy)**2<th*th)return i;return-1}
+// ===== HIT TESTING (active room only) =====
+function hitVertex(sx,sy,th=14){const vs=R().verts;for(let i=0;i<vs.length;i++)if((w2x(vs[i].x)-sx)**2+(w2y(vs[i].y)-sy)**2<th*th)return i;return-1}
 function ptSegD2(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;if(!l)return(px-ax)**2+(py-ay)**2;const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/l));return(px-(ax+t*dx))**2+(py-(ay+t*dy))**2}
-function hitWall(sx,sy,th=10){const n=closed?verts.length:verts.length-1;for(let i=0;i<n;i++){const a=verts[i],b=verts[(i+1)%verts.length];if(ptSegD2(sx,sy,w2x(a.x),w2y(a.y),w2x(b.x),w2y(b.y))<th*th)return i}return-1}
-function pip(px,py){let ins=false;for(let i=0,j=verts.length-1;i<verts.length;j=i++){const xi=verts[i].x,yi=verts[i].y,xj=verts[j].x,yj=verts[j].y;if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)ins=!ins}return ins}
+function hitWall(sx,sy,th=10){const vs=R().verts,n=R().closed?vs.length:vs.length-1;for(let i=0;i<n;i++){const a=vs[i],b=vs[(i+1)%vs.length];if(ptSegD2(sx,sy,w2x(a.x),w2y(a.y),w2x(b.x),w2y(b.y))<th*th)return i}return-1}
+function pip(verts,px,py){let ins=false;for(let i=0,j=verts.length-1;i<verts.length;j=i++){const xi=verts[i].x,yi=verts[i].y,xj=verts[j].x,yj=verts[j].y;if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)ins=!ins}return ins}
 
 // ===== SIMULATION =====
-function simulate(){
-  if(!closed||verts.length<3)return;
-  const tw=parseFloat($('tileW').value)||24;
-  const th=parseFloat($('tileH').value)||24;
-
+function simRoom(rm,tw,th,budget,offcuts){
+  const vs=rm.verts;if(!rm.closed||vs.length<3)return{tiles:[],stats:{full:0,cut:0,reused:0,split:0,newT:0,unfilled:0,cutEdgeEndcaps:0,edgeStrips:0,outCorners:0,inCorners:0,perimIn:0,roomFt2:0},offcuts};
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  for(const v of verts){minX=Math.min(minX,v.x);minY=Math.min(minY,v.y);maxX=Math.max(maxX,v.x);maxY=Math.max(maxY,v.y)}
-
+  for(const v of vs){minX=Math.min(minX,v.x);minY=Math.min(minY,v.y);maxX=Math.max(maxX,v.x);maxY=Math.max(maxY,v.y)}
   const rw=Math.ceil(maxX-minX),rh=Math.ceil(maxY-minY);
   const bitmap=new Uint8Array(rw*rh);
-  for(let y=0;y<rh;y++)for(let x=0;x<rw;x++)if(pip(minX+x+.5,minY+y+.5))bitmap[y*rw+x]=1;
-
-  tiles=[];let fullC=0,cutC=0,reusedC=0,splitC=0,newT=0;
-  let cutEdgeEndcaps=0; // flat cut edges that need endcap strips
+  for(let y=0;y<rh;y++)for(let x=0;x<rw;x++)if(pip(vs,minX+x+.5,minY+y+.5))bitmap[y*rw+x]=1;
+  const tiles=[];let fullC=0,cutC=0,reusedC=0,splitC=0,newT=0,unfilledC=0,cutEdgeEndcaps=0;
   const TOL=.125;
+  function roomCells(rx,ry,rW,rH){let tot=0,ins=0;const x0=Math.max(0,Math.floor(rx-minX)),y0=Math.max(0,Math.floor(ry-minY));const x1=Math.min(rw,Math.ceil(rx+rW-minX)),y1=Math.min(rh,Math.ceil(ry+rH-minY));for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){tot++;if(bitmap[y*rw+x])ins++}return{tot,ins}}
+  function findOC(nw,nh){let bestI=-1,bestA=Infinity;for(let i=0;i<offcuts.length;i++){const o=offcuts[i];if((o.w>=nw-TOL&&o.h>=nh-TOL)||(o.h>=nw-TOL&&o.w>=nh-TOL)){const a=o.w*o.h;if(a<bestA){bestA=a;bestI=i}}}if(bestI<0)return null;const o=offcuts[bestI];offcuts.splice(bestI,1);const norm=o.w>=nw-TOL&&o.h>=nh-TOL;const ow=norm?o.w:o.h,oh=norm?o.h:o.w,ocW=norm?o.cutW:o.cutH,ocH=norm?o.cutH:o.cutW;const pR=ow-nw>TOL,pB=oh-nh>TOL;const ce={l:ocW,t:ocH,r:pR,b:pB};if(ow-nw>1&&oh>1)offcuts.push({w:ow-nw,h:oh,cutW:true,cutH:ocH});if(oh-nh>1&&nw>1)offcuts.push({w:nw,h:oh-nh,cutW:ocW,cutH:true});return ce}
+  function cutNew(nw,nh){const tR=tw-nw>TOL,tB=th-nh>TOL;const ce={l:false,t:false,r:tR,b:tB};if(tw-nw>1&&nh>1)offcuts.push({w:tw-nw,h:nh,cutW:true,cutH:false});if(th-nh>1&&tw>1)offcuts.push({w:tw,h:th-nh,cutW:false,cutH:true});return ce}
 
-  // Offcuts track dimensions + how many cut edges they carry
-  // cutEdges: number of sides that are flat (from a cut)
-  const offcuts=[]; // {w, h, cutW: bool, cutH: bool}
-
-  function roomCells(rx,ry,rW,rH){let tot=0,ins=0;
-    const x0=Math.max(0,Math.floor(rx-minX)),y0=Math.max(0,Math.floor(ry-minY));
-    const x1=Math.min(rw,Math.ceil(rx+rW-minX)),y1=Math.min(rh,Math.ceil(ry+rH-minY));
-    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){tot++;if(bitmap[y*rw+x])ins++}
-    return{tot,ins}}
-
-  function findOC(nw,nh){
-    // Find offcut big enough; prefer one that minimizes further cuts
-    let bestIdx=-1,bestArea=Infinity;
-    for(let i=0;i<offcuts.length;i++){const o=offcuts[i];
-      // Normal orientation
-      if(o.w>=nw-TOL&&o.h>=nh-TOL){const a=o.w*o.h;if(a<bestArea){bestArea=a;bestIdx=i}}
-      // Rotated
-      if(o.h>=nw-TOL&&o.w>=nh-TOL){const a=o.w*o.h;if(a<bestArea){bestArea=a;bestIdx=i}}}
-    if(bestIdx<0)return null;
-    const o=offcuts[bestIdx];offcuts.splice(bestIdx,1);
-    // Determine orientation used
-    const normal=o.w>=nw-TOL&&o.h>=nh-TOL;
-    const ow=normal?o.w:o.h,oh=normal?o.h:o.w;
-    const ocW=normal?o.cutW:o.cutH,ocH=normal?o.cutH:o.cutW;
-    // This piece's cut edges: inherits from offcut, plus any new trim
-    const pieceCutR=ow-nw>TOL; // trimmed on right → new cut edge
-    const pieceCutB=oh-nh>TOL; // trimmed on bottom → new cut edge
-    const cutEdges={l:ocW,t:ocH,r:pieceCutR,b:pieceCutB};
-    // Save remaining offcuts from trimming
-    if(ow-nw>1&&oh>1)offcuts.push({w:ow-nw,h:oh,cutW:true,cutH:ocH});
-    if(oh-nh>1&&nw>1)offcuts.push({w:nw,h:oh-nh,cutW:ocW,cutH:true});
-    return cutEdges}
-
-  function cutNewTile(nw,nh){
-    // Cut from a fresh tile. Fresh tile has 0 cut edges (all interlocking tabs).
-    // After cutting: the piece we use has cut edges on trimmed sides,
-    // and the offcut(s) have cut edges on the cut side.
-    const trimR=tw-nw>TOL,trimB=th-nh>TOL;
-    const cutEdges={l:false,t:false,r:trimR,b:trimB};
-    // Save offcuts
-    if(tw-nw>1&&nh>1)offcuts.push({w:tw-nw,h:nh,cutW:true,cutH:false});
-    if(th-nh>1&&tw>1)offcuts.push({w:tw,h:th-nh,cutW:false,cutH:true});
-    return cutEdges}
-
-  // Simple grid, no gap (interlocking tiles)
   const nR=Math.ceil(rh/th)+1,nC=Math.ceil(rw/tw)+1;
   for(let row=0;row<nR;row++){for(let col=0;col<nC;col++){
     const tx=minX+col*tw,ty=minY+row*th;
@@ -469,89 +391,112 @@ function simulate(){
     const nw=Math.min(tw,eW),nh=Math.min(th,eH);
     const isFull=nw>=tw-TOL&&nh>=th-TOL&&ins===tot;
     if(isFull){
-      tiles.push({x:tx,y:ty,w:tw,h:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}});fullC++;newT++}
-    else{
+      if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:tw,h:th,type:'unfilled'});unfilledC++;continue}
+      tiles.push({x:tx,y:ty,w:tw,h:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}});fullC++;newT++;
+    }else{
       const oc=findOC(nw,nh);
-      if(oc){
-        tiles.push({x:tx,y:ty,w:nw,h:nh,type:'reused',cutEdges:oc});reusedC++;
-        // Count cut edges that face interior (not against a wall — handled separately)
-        [oc.l,oc.t,oc.r,oc.b].forEach(c=>{if(c)cutEdgeEndcaps++})}
-      else{
-        const ce=cutNewTile(nw,nh);
-        tiles.push({x:tx,y:ty,w:nw,h:nh,type:'cut',cutEdges:ce});cutC++;newT++;
-        [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdgeEndcaps++})}}}}
-
-  // Count splits: tiles where both the main piece and an offcut got used
-  // Approximation: every reused offcut came from a cut tile that was "split"
+      if(oc){tiles.push({x:tx,y:ty,w:nw,h:nh,type:'reused',cutEdges:oc});reusedC++;
+        [oc.l,oc.t,oc.r,oc.b].forEach(c=>{if(c)cutEdgeEndcaps++});
+      }else{
+        if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:nw,h:nh,type:'unfilled'});unfilledC++;continue}
+        const ce=cutNew(nw,nh);tiles.push({x:tx,y:ty,w:nw,h:nh,type:'cut',cutEdges:ce});cutC++;newT++;
+        [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdgeEndcaps++});
+      }}}}
   splitC=reusedC;
-
-  // ===== EDGE STRIPS & CORNERS =====
-  const n=verts.length;
-  let totalEdge=0,outCorners=0,inCorners=0,perimIn=0;
-
-  // Signed area for winding direction (shoelace)
-  let sa2=0;
-  for(let i=0;i<n;i++){const a=verts[i],b=verts[(i+1)%n];sa2+=a.x*b.y-b.x*a.y}
+  // Edge strips & corners
+  const n=vs.length;let totalEdge=0,outC=0,inC=0,perimIn=0;
+  let sa2=0;for(let i=0;i<n;i++){const a=vs[i],b=vs[(i+1)%n];sa2+=a.x*b.y-b.x*a.y}
   const isCW=sa2>0;
-
-  for(let i=0;i<n;i++){
-    const a=verts[i],b=verts[(i+1)%n];
-    const wl=distV(a,b);perimIn+=wl;
-    // Edge strips: one per tile edge along this wall
-    const isH=Math.abs(b.x-a.x)>Math.abs(b.y-a.y);
-    totalEdge+=Math.ceil(wl/(isH?tw:th));
-    // Corner classification at vertex i
-    const prev=verts[(i-1+n)%n],curr=verts[i],next=verts[(i+1)%n];
-    const dx1=curr.x-prev.x,dy1=curr.y-prev.y;
-    const dx2=next.x-curr.x,dy2=next.y-curr.y;
-    const cross=dx1*dy2-dy1*dx2;
-    if(Math.abs(cross)>0.01){if((cross>0)===isCW)outCorners++;else inCorners++}
-  }
-
-  simulated=true;
+  for(let i=0;i<n;i++){const a=vs[i],b=vs[(i+1)%n];const wl=distV(a,b);perimIn+=wl;
+    const isH=Math.abs(b.x-a.x)>Math.abs(b.y-a.y);totalEdge+=Math.ceil(wl/(isH?tw:th));
+    const prev=vs[(i-1+n)%n],curr=vs[i],next=vs[(i+1)%n];
+    const dx1=curr.x-prev.x,dy1=curr.y-prev.y,dx2=next.x-curr.x,dy2=next.y-curr.y;
+    const cross=dx1*dy2-dy1*dx2;if(Math.abs(cross)>.01){if((cross>0)===isCW)outC++;else inC++}}
   let roomSqIn=0;for(let i=0;i<bitmap.length;i++)if(bitmap[i])roomSqIn++;
-  const roomFt2=roomSqIn/144,tileFt2=(newT*tw*th)/144;
-  const waste=tileFt2>0?Math.max(0,(tileFt2-roomFt2)/tileFt2*100):0;
+  return{tiles,stats:{full:fullC,cut:cutC,reused:reusedC,split:splitC,newT,unfilled:unfilledC,cutEdgeEndcaps,edgeStrips:totalEdge,outCorners:outC,inCorners:inC,perimIn,roomFt2:roomSqIn/144},offcuts};
+}
 
-  $('sToBuy').textContent=newT;
-  $('sFull').textContent=fullC;
-  $('sCut').textContent=cutC;
-  $('sReused').textContent=reusedC;
-  $('sSplit').textContent=splitC;
-  $('sWaste').textContent=waste.toFixed(1)+'%';
-  $('sRoom').textContent=roomFt2.toFixed(1);
-  $('sPerim').textContent=fmtFtIn(perimIn);
-  $('sEdge').textContent=totalEdge;
-  $('sCutEdge').textContent=cutEdgeEndcaps;
-  $('sOutC').textContent=outCorners;
-  $('sInC').textContent=inCorners;
-  $('stats').style.display='block';
-  qr();
+function simulate(){
+  const tw=parseFloat($('tileW').value)||24,th=parseFloat($('tileH').value)||24;
+  const budgetVal=$('budget').value.trim();
+  let totalBudget=budgetVal?parseInt(budgetVal):null;
+  // Sort rooms by priority
+  const order=rooms.map((r,i)=>({r,i})).filter(x=>x.r.closed&&x.r.verts.length>=3).sort((a,b)=>a.r.priority-b.r.priority);
+  let offcuts=[],totalNew=0;
+  const results=new Array(rooms.length).fill(null);
+  for(const{r,i}of order){
+    const remaining=totalBudget!==null?totalBudget-totalNew:null;
+    const res=simRoom(r,tw,th,remaining,offcuts);
+    offcuts=res.offcuts;totalNew+=res.stats.newT;
+    results[i]=res;
+  }
+  // Fill nulls for unclosed rooms
+  for(let i=0;i<rooms.length;i++)if(!results[i])results[i]={tiles:[],stats:{full:0,cut:0,reused:0,split:0,newT:0,unfilled:0,cutEdgeEndcaps:0,edgeStrips:0,outCorners:0,inCorners:0,perimIn:0,roomFt2:0}};
+  // Totals
+  const t={full:0,cut:0,reused:0,split:0,newT:0,unfilled:0,cutEdgeEndcaps:0,edgeStrips:0,outCorners:0,inCorners:0,roomFt2:0};
+  for(const rr of results){for(const k in t)t[k]+=(rr.stats[k]||0)}
+  const tileFt2=(t.newT*tw*th)/144;
+  const waste=tileFt2>0?Math.max(0,(tileFt2-t.roomFt2)/tileFt2*100):0;
+  simResults={rooms:results,totals:{...t,waste,tileFt2,budget:totalBudget}};
+  renderStats();qr();
+}
+
+function renderStats(){
+  if(!simResults){$('stats').style.display='none';return}
+  const t=simResults.totals;
+  let html=`<h3>Summary</h3><div class="sg">
+    <div class="st hl fw"><div class="v">${t.newT}${t.budget!==null?' / '+t.budget:''}</div><div class="l">Tiles used${t.budget!==null?' (budget)':''}</div></div>
+    <div class="st"><div class="v">${t.full}</div><div class="l">Full</div></div>
+    <div class="st"><div class="v">${t.cut}</div><div class="l">Cut</div></div>
+    <div class="st"><div class="v">${t.reused}</div><div class="l">Reused</div></div>
+    <div class="st"><div class="v">${t.waste.toFixed(1)}%</div><div class="l">Waste</div></div>
+    ${t.unfilled?`<div class="st fw" style="background:rgba(200,50,50,.15)"><div class="v" style="color:#f56c6c">${t.unfilled}</div><div class="l">Unfilled (over budget)</div></div>`:''}
+    <div class="st"><div class="v">${t.edgeStrips}</div><div class="l">Wall edges</div></div>
+    <div class="st"><div class="v">${t.cutEdgeEndcaps}</div><div class="l">Cut endcaps</div></div>
+    <div class="st"><div class="v">${t.outCorners}</div><div class="l">Outside corners</div></div>
+    <div class="st"><div class="v">${t.inCorners}</div><div class="l">Inside corners</div></div>
+  </div>`;
+  // Per-room
+  for(let i=0;i<rooms.length;i++){
+    const rm=rooms[i],rr=simResults.rooms[i];if(!rm.closed)continue;
+    const s=rr.stats;
+    html+=`<h4><span class="swatch" style="background:${rm.color}"></span>${rm.name} <span style="color:var(--muted);font-weight:400;font-size:11px">pri ${rm.priority}</span></h4>
+    <div class="sg"><div class="st sm"><div class="v">${s.newT}</div><div class="l">Tiles</div></div>
+    <div class="st sm"><div class="v">${s.roomFt2.toFixed(1)}</div><div class="l">ft²</div></div>
+    <div class="st sm"><div class="v">${s.full}/${s.cut}/${s.reused}</div><div class="l">Full/Cut/Reuse</div></div>
+    <div class="st sm"><div class="v">${s.unfilled||'—'}</div><div class="l">Unfilled</div></div></div>`;
+  }
+  html+=`<div class="legend" style="margin-top:12px">
+    <div class="legend-i"><div class="legend-s" style="background:#4a90d9"></div>Full tile</div>
+    <div class="legend-i"><div class="legend-s" style="background:#e6a23c"></div>Cut (new tile)</div>
+    <div class="legend-i"><div class="legend-s" style="background:#67c23a"></div>Reused offcut</div>
+    <div class="legend-i"><div class="legend-s" style="background:transparent;border:2px dashed #f56c6c"></div>Cut edge endcap</div>
+    <div class="legend-i"><div class="legend-s" style="background:rgba(200,50,50,.2);border:1px dashed rgba(200,50,50,.4)"></div>Unfilled (over budget)</div>
+  </div>`;
+  $('stats').innerHTML=html;$('stats').style.display='block';
 }
 
 // ===== WALL LENGTH EDITING =====
-function showWallInput(i){const a=verts[i],b=verts[(i+1)%verts.length];const len=distV(a,b);
-  const el=$('wallInput'),inp=$('wlIn');
-  inp.value=len%1?len.toFixed(1):len.toString();
+function showWallInput(i){const vs=R().verts,a=vs[i],b=vs[(i+1)%vs.length];const len=distV(a,b);
+  const el=$('wallInput'),inp=$('wlIn');inp.value=len%1?len.toFixed(1):len.toString();
   el.style.left=((w2x(a.x)+w2x(b.x))/2)+'px';el.style.top=((w2y(a.y)+w2y(b.y))/2)+'px';
   el.style.display='block';setTimeout(()=>{inp.focus();inp.select()},0)}
 function hideWallInput(){$('wallInput').style.display='none'}
 function applyWallLength(){if(selWall<0)return;const len=parseLen($('wlIn').value);
-  if(len==null||len<=0)return;const a=verts[selWall],b=verts[(selWall+1)%verts.length];
+  if(len==null||len<=0)return;const vs=R().verts,a=vs[selWall],b=vs[(selWall+1)%vs.length];
   const dx=b.x-a.x,dy=b.y-a.y,cur=Math.sqrt(dx*dx+dy*dy);if(cur<.01)return;
-  const s=len/cur;b.x=snp(a.x+dx*s);b.y=snp(a.y+dy*s);simulated=false;hideWallInput();qr()}
-$('wlIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyWallLength()}
-  if(e.key==='Escape'){e.preventDefault();hideWallInput();selWall=-1;qr()}e.stopPropagation()});
+  const s=len/cur;b.x=snp(a.x+dx*s);b.y=snp(a.y+dy*s);simResults=null;hideWallInput();qr()}
+$('wlIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyWallLength()}if(e.key==='Escape'){e.preventDefault();hideWallInput();selWall=-1;qr()}e.stopPropagation()});
 $('wlIn').addEventListener('keypress',e=>e.stopPropagation());
 
 // ===== CONSTRAINED DRAG =====
-function beginCD(vi){const n=verts.length,v=verts[vi];let pO=null,nO=null;
-  if(closed||vi>0){pO=wallOrient(verts[(vi-1+n)%n],v)}
-  if(closed||vi<n-1){nO=wallOrient(v,verts[(vi+1)%n])}
+function beginCD(vi){const vs=R().verts,n=vs.length,v=vs[vi];let pO=null,nO=null;
+  if(R().closed||vi>0)pO=wallOrient(vs[(vi-1+n)%n],v);
+  if(R().closed||vi<n-1)nO=wallOrient(v,vs[(vi+1)%n]);
   dragWallOrients={prev:pO,next:nO}}
-function applyCD(vi){if(!dragWallOrients)return;const n=verts.length,v=verts[vi];
-  if(dragWallOrients.prev&&(closed||vi>0)){const p=verts[(vi-1+n)%n];if(dragWallOrients.prev==='h')p.y=v.y;else p.x=v.x}
-  if(dragWallOrients.next&&(closed||vi<n-1)){const nx=verts[(vi+1)%n];if(dragWallOrients.next==='h')nx.y=v.y;else nx.x=v.x}}
+function applyCD(vi){if(!dragWallOrients)return;const vs=R().verts,n=vs.length,v=vs[vi];
+  if(dragWallOrients.prev&&(R().closed||vi>0)){const p=vs[(vi-1+n)%n];if(dragWallOrients.prev==='h')p.y=v.y;else p.x=v.x}
+  if(dragWallOrients.next&&(R().closed||vi<n-1)){const nx=vs[(vi+1)%n];if(dragWallOrients.next==='h')nx.y=v.y;else nx.x=v.x}}
 
 // ===== MOUSE =====
 const DT=5;
@@ -560,107 +505,100 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
   hideWallInput();mdPos={x:sx,y:sy};didDrag=false;
   mdVert=hitVertex(sx,sy);if(mdVert>=0){mdWall=-1;return}
   mdWall=hitWall(sx,sy);if(mdWall>=0)return;
-  if(!closed){let wx=snp(s2wx(sx)),wy=snp(s2wy(sy));
-    if(drawFrom>=0){const c=constrainHV(wx,wy,verts[drawFrom]);wx=c.x;wy=c.y;
-      const a=alignSnap(wx,wy,drawFrom);wx=a.x;wy=a.y}
-    if(drawFrom===0&&verts.length>0){verts.unshift({x:wx,y:wy});drawFrom=0}
-    else{verts.push({x:wx,y:wy});drawFrom=verts.length-1}
-    alignGuides=[];simulated=false;updateModeTag();qr()}});
+  const rm=R();
+  if(!rm.closed){let wx=snp(s2wx(sx)),wy=snp(s2wy(sy));
+    if(drawFrom>=0){const c=constrainHV(wx,wy,rm.verts[drawFrom]);wx=c.x;wy=c.y;const a=alignSnap(wx,wy,drawFrom);wx=a.x;wy=a.y}
+    if(drawFrom===0&&rm.verts.length>0){rm.verts.unshift({x:wx,y:wy});drawFrom=0}
+    else{rm.verts.push({x:wx,y:wy});drawFrom=rm.verts.length-1}
+    alignGuides=[];simResults=null;updateModeTag();qr()}});
 
-C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;
-  const rwx=s2wx(sx),rwy=s2wy(sy);
+C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;const rwx=s2wx(sx),rwy=s2wy(sy);
   $('coords').textContent=`${fmtIn(rwx)} , ${fmtIn(rwy)}`;
   if(panning){ox=panOX+(sx-panSX);oy=panOY+(sy-panSY);qr();return}
-  if(mdVert>=0&&mdPos&&!didDrag){const dx=sx-mdPos.x,dy=sy-mdPos.y;
-    if(dx*dx+dy*dy>DT*DT){didDrag=true;dragVert=mdVert;if(shouldSnap())beginCD(mdVert);else dragWallOrients=null}}
-  if(dragVert>=0){const as=alignSnap(rwx,rwy,dragVert);verts[dragVert].x=as.x;verts[dragVert].y=as.y;
-    if(shouldSnap()&&dragWallOrients)applyCD(dragVert);simulated=false;C.style.cursor='grabbing';qr();return}
-  if(drawFrom>=0&&!closed){let gs=constrainHV(rwx,rwy,verts[drawFrom]);
-    gs=alignSnap(gs.x,gs.y,drawFrom);ghostSnap=gs}else{ghostSnap=null;alignGuides=[]}
+  if(mdVert>=0&&mdPos&&!didDrag){const dx=sx-mdPos.x,dy=sy-mdPos.y;if(dx*dx+dy*dy>DT*DT){didDrag=true;dragVert=mdVert;if(shouldSnap())beginCD(mdVert);else dragWallOrients=null}}
+  if(dragVert>=0){const as=alignSnap(rwx,rwy,dragVert);R().verts[dragVert].x=as.x;R().verts[dragVert].y=as.y;
+    if(shouldSnap()&&dragWallOrients)applyCD(dragVert);simResults=null;C.style.cursor='grabbing';qr();return}
+  const rm=R();
+  if(drawFrom>=0&&!rm.closed){let gs=constrainHV(rwx,rwy,rm.verts[drawFrom]);gs=alignSnap(gs.x,gs.y,drawFrom);ghostSnap=gs}else{ghostSnap=null;alignGuides=[]}
   hoverVert=hitVertex(sx,sy);hoverWall=hoverVert<0?hitWall(sx,sy):-1;
-  C.style.cursor=hoverVert>=0?'grab':hoverWall>=0?'pointer':(drawFrom>=0&&!closed?'crosshair':'default');qr()});
+  C.style.cursor=hoverVert>=0?'grab':hoverWall>=0?'pointer':(drawFrom>=0&&!rm.closed?'crosshair':'default');qr()});
 
 C.addEventListener('mouseup',e=>{
-  if(panning){panning=false;C.style.cursor=drawFrom>=0&&!closed?'crosshair':'default';return}
+  if(panning){panning=false;C.style.cursor=drawFrom>=0&&!R().closed?'crosshair':'default';return}
   if(dragVert>=0){dragVert=-1;dragWallOrients=null;alignGuides=[];C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
-  const sx=e.clientX;
+  const sx=e.clientX,rm=R(),vs=rm.verts;
   if(mdVert>=0&&!didDrag){
-    if(!closed&&drawFrom>=0&&verts.length>2&&mdVert===closeTarget()){closed=true;drawFrom=-1;ghostSnap=null;updateModeTag();qr()}
-    else if(!closed&&drawFrom===-1&&isEndVertex(mdVert)){drawFrom=mdVert;updateModeTag();qr()}
-    else if(!closed&&drawFrom>=0&&isEndVertex(mdVert)&&mdVert!==drawFrom){drawFrom=mdVert;updateModeTag();qr()}}
-  if(mdWall>=0&&!didDrag){if(e.detail===2){const a=verts[mdWall],b=verts[(mdWall+1)%verts.length];
-    const dx=b.x-a.x,dy=b.y-a.y,lsq=dx*dx+dy*dy;
-    if(lsq>0){const rw2=s2wx(sx),ry=s2wy(e.clientY);
-      let t=Math.max(.05,Math.min(.95,((rw2-a.x)*dx+(ry-a.y)*dy)/lsq));
-      verts.splice(mdWall+1,0,{x:snp(a.x+dx*t),y:snp(a.y+dy*t)});simulated=false}
-    selWall=-1}else{selWall=mdWall;showWallInput(mdWall)}qr()}
+    if(!rm.closed&&drawFrom>=0&&vs.length>2&&mdVert===closeTarget()){rm.closed=true;drawFrom=-1;ghostSnap=null;updateModeTag();renderRoomList();qr()}
+    else if(!rm.closed&&drawFrom===-1&&isEndVertex(mdVert)){drawFrom=mdVert;updateModeTag();qr()}
+    else if(!rm.closed&&drawFrom>=0&&isEndVertex(mdVert)&&mdVert!==drawFrom){drawFrom=mdVert;updateModeTag();qr()}}
+  if(mdWall>=0&&!didDrag){if(e.detail===2){const a=vs[mdWall],b=vs[(mdWall+1)%vs.length];const dx=b.x-a.x,dy=b.y-a.y,lsq=dx*dx+dy*dy;
+    if(lsq>0){const rw2=s2wx(sx),ry=s2wy(e.clientY);let t=Math.max(.05,Math.min(.95,((rw2-a.x)*dx+(ry-a.y)*dy)/lsq));
+      vs.splice(mdWall+1,0,{x:snp(a.x+dx*t),y:snp(a.y+dy*t)});simResults=null}selWall=-1}
+    else{selWall=mdWall;showWallInput(mdWall)}qr()}
   mdPos=null;mdVert=-1;mdWall=-1;didDrag=false});
 
-C.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.12:1/1.12;
-  const ns=Math.max(.15,Math.min(40,scale*f));
+C.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.12:1/1.12;const ns=Math.max(.15,Math.min(40,scale*f));
   ox=e.clientX-(e.clientX-ox)*(ns/scale);oy=e.clientY-(e.clientY-oy)*(ns/scale);scale=ns;qr()},{passive:false});
 C.addEventListener('contextmenu',e=>e.preventDefault());
 
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;ctrlDown=e.ctrlKey||e.metaKey;
+  const rm=R(),vs=rm.verts;
   if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();
-    if(!closed&&verts.length>0){if(drawFrom===0)verts.shift();else verts.pop();
-      if(!verts.length)drawFrom=-1;else if(drawFrom===0)drawFrom=0;else drawFrom=verts.length-1;
-      simulated=false;updateModeTag();qr()}
-    else if(closed&&hoverVert>=0&&verts.length>3){verts.splice(hoverVert,1);hoverVert=-1;simulated=false;qr()}}
+    if(!rm.closed&&vs.length>0){if(drawFrom===0)vs.shift();else vs.pop();
+      if(!vs.length)drawFrom=-1;else if(drawFrom===0)drawFrom=0;else drawFrom=vs.length-1;
+      simResults=null;updateModeTag();qr()}
+    else if(rm.closed&&hoverVert>=0&&vs.length>3){vs.splice(hoverVert,1);hoverVert=-1;simResults=null;qr()}}
   if(e.key==='Escape'){if(selWall>=0){selWall=-1;hideWallInput()}
-    else if(drawFrom>=0&&!closed){drawFrom=-1;ghostSnap=null}
-    else if(!closed&&verts.length>0){verts=[];drawFrom=-1;ghostSnap=null}
+    else if(drawFrom>=0&&!rm.closed){drawFrom=-1;ghostSnap=null}
+    else if(!rm.closed&&vs.length>0){rm.verts=[];rooms[activeRoom].verts=[];drawFrom=-1;ghostSnap=null}
     updateModeTag();qr()}});
 document.addEventListener('keyup',e=>{ctrlDown=e.ctrlKey||e.metaKey});
 
-// ===== SAVE / LOAD =====
-const SKEY='tilecalc_rooms';
+function clearAll(){
+  rooms=[{name:'Room 1',verts:[],closed:false,priority:1,color:ROOM_COLORS[0]}];
+  activeRoom=0;drawFrom=-1;simResults=null;selWall=-1;hoverVert=-1;hoverWall=-1;ghostSnap=null;alignGuides=[];dragWallOrients=null;
+  hideWallInput();$('stats').style.display='none';updateModeTag();renderRoomList();C.style.cursor='default';qr()}
+
+function resetView(){
+  let allV=[];for(const rm of rooms)allV.push(...rm.verts);
+  if(!allV.length){ox=100;oy=100;scale=4;qr();return}
+  let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
+  for(const v of allV){mnx=Math.min(mnx,v.x);mny=Math.min(mny,v.y);mxx=Math.max(mxx,v.x);mxy=Math.max(mxy,v.y)}
+  const pad=80,sw=C.width-300-pad*2,sh=C.height-pad*2;
+  scale=Math.min(sw/(mxx-mnx||1),sh/(mxy-mny||1));
+  ox=pad+220+(sw/2)-((mnx+mxx)/2)*scale;oy=pad+(sh/2)-((mny+mxy)/2)*scale;qr()}
+
+// ===== SAVE/LOAD =====
+const SKEY='tilecalc_projects';
 function getSaved(){try{return JSON.parse(localStorage.getItem(SKEY))||[]}catch(e){return[]}}
 function setSaved(r){try{localStorage.setItem(SKEY,JSON.stringify(r))}catch(e){}}
-
-function populateLoad(){const sel=$('savedRooms'),rooms=getSaved();
-  sel.innerHTML='<option value="">Load</option>'+rooms.map((r,i)=>`<option value="${i}">${r.name}</option>`).join('')}
-
-function openSaveDialog(){if(!verts.length)return;$('saveDialog').style.display='block';$('saveOverlay').style.display='block';$('saveName').focus()}
+function populateLoad(){const sel=$('savedProjects'),saved=getSaved();
+  sel.innerHTML='<option value="">Load</option>'+saved.map((r,i)=>`<option value="${i}">${r.name}</option>`).join('')}
+function openSaveDialog(){$('saveDialog').style.display='block';$('saveOverlay').style.display='block';$('saveName').focus()}
 function closeSaveDialog(){$('saveDialog').style.display='none';$('saveOverlay').style.display='none';$('saveName').value=''}
-
 function confirmSave(){const name=$('saveName').value.trim();if(!name)return;
-  const rooms=getSaved();const idx=rooms.findIndex(r=>r.name===name);if(idx>=0)rooms.splice(idx,1);
-  rooms.push({name,verts:verts.map(v=>({x:v.x,y:v.y})),closed,
+  const saved=getSaved();const idx=saved.findIndex(r=>r.name===name);if(idx>=0)saved.splice(idx,1);
+  saved.push({name,rooms:rooms.map(r=>({name:r.name,verts:r.verts.map(v=>({x:v.x,y:v.y})),closed:r.closed,priority:r.priority,color:r.color})),
     tileW:parseFloat($('tileW').value)||24,tileH:parseFloat($('tileH').value)||24,
-    tabDepth:parseFloat($('tab').value)||.25,snapMode,savedAt:new Date().toISOString()});
-  setSaved(rooms);populateLoad();closeSaveDialog()}
-
-$('saveName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();confirmSave()}
-  if(e.key==='Escape'){e.preventDefault();closeSaveDialog()}e.stopPropagation()});
-
-function loadRoom(){const sel=$('savedRooms'),idx=parseInt(sel.value);if(isNaN(idx))return;
-  const r=getSaved()[idx];if(!r)return;
-  verts=r.verts.map(v=>({x:v.x,y:v.y}));closed=r.closed;drawFrom=-1;
-  $('tileW').value=r.tileW||24;$('tileH').value=r.tileH||24;$('tab').value=r.tabDepth||.25;
-  if(r.snapMode!==undefined){snapMode=r.snapMode;$('snapBtn').classList.toggle('snap-on',snapMode);$('snapBtn').style.background=snapMode?'':'#333'}
-  tiles=[];simulated=false;sel.value='';updateModeTag();resetView()}
-
-function deleteRoom(){const sel=$('savedRooms'),idx=parseInt(sel.value);if(isNaN(idx))return;
-  const rooms=getSaved();if(!rooms[idx])return;
-  if(confirm(`Delete "${rooms[idx].name}"?`)){rooms.splice(idx,1);setSaved(rooms);populateLoad()}}
-
-function clearAll(){verts=[];closed=false;drawFrom=-1;tiles=[];simulated=false;
-  selWall=-1;hoverVert=-1;hoverWall=-1;ghostSnap=null;dragWallOrients=null;
-  hideWallInput();$('stats').style.display='none';updateModeTag();C.style.cursor='default';qr()}
-
-function resetView(){if(!verts.length){ox=100;oy=100;scale=4;qr();return}
-  let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
-  for(const v of verts){mnx=Math.min(mnx,v.x);mny=Math.min(mny,v.y);mxx=Math.max(mxx,v.x);mxy=Math.max(mxy,v.y)}
-  const pad=80,sw=C.width-280-pad*2,sh=C.height-pad*2;
-  scale=Math.min(sw/(mxx-mnx||1),sh/(mxy-mny||1));
-  ox=pad+sw/2-((mnx+mxx)/2)*scale;oy=pad+sh/2-((mny+mxy)/2)*scale;qr()}
+    tabDepth:parseFloat($('tab').value)||.25,budget:$('budget').value.trim(),snapMode,savedAt:new Date().toISOString()});
+  setSaved(saved);populateLoad();closeSaveDialog()}
+$('saveName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();confirmSave()}if(e.key==='Escape'){e.preventDefault();closeSaveDialog()}e.stopPropagation()});
+function loadProject(){const sel=$('savedProjects'),idx=parseInt(sel.value);if(isNaN(idx))return;
+  const p=getSaved()[idx];if(!p)return;
+  rooms=p.rooms.map(r=>({name:r.name,verts:r.verts.map(v=>({x:v.x,y:v.y})),closed:r.closed,priority:r.priority,color:r.color}));
+  activeRoom=0;drawFrom=-1;
+  $('tileW').value=p.tileW||24;$('tileH').value=p.tileH||24;$('tab').value=p.tabDepth||.25;
+  $('budget').value=p.budget||'';
+  if(p.snapMode!==undefined){snapMode=p.snapMode;$('snapBtn').classList.toggle('snap-on',snapMode);$('snapBtn').style.background=snapMode?'':'#333'}
+  simResults=null;sel.value='';updateModeTag();renderRoomList();resetView()}
+function deleteProject(){const sel=$('savedProjects'),idx=parseInt(sel.value);if(isNaN(idx))return;
+  const saved=getSaved();if(!saved[idx])return;if(confirm(`Delete "${saved[idx].name}"?`)){saved.splice(idx,1);setSaved(saved);populateLoad()}}
 
 window.addEventListener('resize',qr);
 matchMedia('(prefers-color-scheme:light)').addEventListener('change',qr);
 try{populateLoad()}catch(e){}
-updateModeTag();qr();
+updateModeTag();renderRoomList();qr();
 </script>
 </body>
 </html>
