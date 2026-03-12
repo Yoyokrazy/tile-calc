@@ -128,6 +128,7 @@ const C=$('c'),ctx=C.getContext('2d');
 function isLight(){return matchMedia('(prefers-color-scheme:light)').matches}
 
 // ===== ROOM COLORS =====
+// Kept for backward compat in save files, not used for rendering
 const ROOM_COLORS=['#4a90d9','#e6a23c','#67c23a','#e94560','#9b59b6','#1abc9c','#e67e22','#3498db'];
 
 // ===== MULTI-ROOM STATE =====
@@ -191,7 +192,6 @@ function toggleSnap(){snapMode=!snapMode;$('snapBtn').classList.toggle('snap-on'
 function renderRoomList(){
   const el=$('roomList');
   el.innerHTML=rooms.map((r,i)=>`<div class="room-item${i===activeRoom?' active':''}" onclick="switchRoom(${i})">
-    <div class="swatch" style="background:${r.color}"></div>
     <span class="rname">${r.name}</span>
     <input class="rpri-in" type="number" value="${r.priority}" min="1" max="99" title="Priority (1=highest)"
       onclick="event.stopPropagation()" onchange="rooms[${i}].priority=parseInt(this.value)||1">
@@ -268,21 +268,24 @@ function drawMeasurement(ax,ay,bx,by,wallIdx,isSel){
 // ===== RENDER ALL ROOMS =====
 function drawRooms(){
   const lt=isLight();
+  const wallColor=lt?'rgba(0,0,0,0.55)':'rgba(255,255,255,0.6)';
+  const fillColor=lt?'rgba(60,80,110,0.12)':'rgba(50,70,100,0.25)';
+  const inactiveAlpha=0.3;
   for(let ri=0;ri<rooms.length;ri++){
     const rm=rooms[ri],vs=rm.verts,n=vs.length,isActive=ri===activeRoom;
     if(n===0)continue;
-    const alpha=isActive?1:.4;
+    const alpha=isActive?1:inactiveAlpha;
     // Fill
-    if(rm.closed){ctx.fillStyle=rm.color+'30';ctx.beginPath();
+    if(rm.closed){ctx.globalAlpha=alpha;ctx.fillStyle=fillColor;ctx.beginPath();
       ctx.moveTo(w2x(vs[0].x),w2y(vs[0].y));
       for(let i=1;i<n;i++)ctx.lineTo(w2x(vs[i].x),w2y(vs[i].y));
-      ctx.closePath();ctx.fill()}
+      ctx.closePath();ctx.fill();ctx.globalAlpha=1}
     // Walls
     const wc=rm.closed?n:n-1;
     for(let i=0;i<wc;i++){const a=vs[i],b=vs[(i+1)%n];
       const sel=isActive&&i===selWall,hov=isActive&&i===hoverWall;
       ctx.globalAlpha=alpha;
-      ctx.strokeStyle=sel?'#e94560':hov?(lt?'#333':'#fff'):rm.color;
+      ctx.strokeStyle=sel?'#e94560':hov?(lt?'#111':'#fff'):wallColor;
       ctx.lineWidth=sel?3:hov?2.5:(isActive?1.5:1);
       ctx.beginPath();ctx.moveTo(w2x(a.x),w2y(a.y));ctx.lineTo(w2x(b.x),w2y(b.y));ctx.stroke();
       ctx.globalAlpha=1}
@@ -292,9 +295,9 @@ function drawRooms(){
     if(rm.closed&&n>2){
       let cx=0,cy=0;for(const v of vs){cx+=v.x;cy+=v.y}
       cx/=n;cy/=n;
-      ctx.globalAlpha=isActive?.7:.35;
+      ctx.globalAlpha=isActive?.6:.25;
       ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillStyle=rm.color;ctx.fillText(rm.name,w2x(cx),w2y(cy));
+      ctx.fillStyle=lt?'#333':'#ccc';ctx.fillText(rm.name,w2x(cx),w2y(cy));
       ctx.globalAlpha=1;ctx.textAlign='start';ctx.textBaseline='alphabetic'}
     // Ghost line (active only)
     if(isActive&&drawFrom>=0&&!rm.closed&&ghostSnap){
@@ -318,7 +321,7 @@ function drawRooms(){
         ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();
         if(isCl&&isH2){ctx.strokeStyle='#e94560';ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke()}
         if(isAct2){ctx.strokeStyle='#4a90d9';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,9,0,Math.PI*2);ctx.stroke()}
-      }else{ctx.fillStyle=rm.color;ctx.globalAlpha=.35;
+      }else{ctx.fillStyle=lt?'#888':'#666';ctx.globalAlpha=inactiveAlpha;
         ctx.beginPath();ctx.arc(sx,sy,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}}
     // Snap cursor
     if(isActive&&drawFrom>=0&&!rm.closed&&ghostSnap){const gx=w2x(ghostSnap.x),gy=w2y(ghostSnap.y);
@@ -390,20 +393,6 @@ function drawTiles(){
       if(ce.t){ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+fw,fy);ctx.stroke()}
       if(ce.b){ctx.beginPath();ctx.moveTo(fx,fy+fh);ctx.lineTo(fx+fw,fy+fh);ctx.stroke()}
       ctx.setLineDash([])}}}
-  // Dragged tile ghost
-  if(dragTile&&dragTilePos){
-    const t=simResults.rooms[dragTile.ri].tiles[dragTile.ti];
-    ctx.globalAlpha=0.6;
-    ctx.fillStyle='rgba(74,144,217,0.5)';
-    ctx.fillRect(dragTilePos.x,dragTilePos.y,t.w*scale,t.h*scale);
-    ctx.strokeStyle='#fff';ctx.lineWidth=2;
-    ctx.strokeRect(dragTilePos.x,dragTilePos.y,t.w*scale,t.h*scale);
-    ctx.globalAlpha=1}
-  // Held tile cursor indicator
-  if(heldTile){
-    ctx.fillStyle='rgba(103,194,58,0.15)';
-    // Dim overlay to show placement mode
-  }
   // Room outlines on top
   for(const rm of rooms){
     if(!rm.closed||rm.verts.length<3)continue;
@@ -529,7 +518,7 @@ function renderStats(){
     const rm=rooms[i],rr=simResults.rooms[i];if(!rm.closed)continue;
     const s=rr.stats;
     const coverage=s.roomFt2>0?((s.roomFt2-(s.unfilled||0))/s.roomFt2*100):0;
-    html+=`<h4><span class="swatch" style="background:${rm.color}"></span>${rm.name} <span style="color:var(--muted);font-weight:400;font-size:11px">pri ${rm.priority}</span></h4>
+    html+=`<h4>${rm.name} <span style="color:var(--muted);font-weight:400;font-size:11px">pri ${rm.priority}</span></h4>
     <div class="sg"><div class="st sm"><div class="v">${s.newT}</div><div class="l">Tiles</div></div>
     <div class="st sm"><div class="v">${s.roomFt2.toFixed(1)}</div><div class="l">ft²</div></div>
     <div class="st sm"><div class="v">${s.full}/${s.cut}/${s.reused}</div><div class="l">Full/Cut/Reuse</div></div>
@@ -592,15 +581,12 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
   if(isBM&&hoverTile){
     const t=simResults.rooms[hoverTile.ri].tiles[hoverTile.ti];
     if(t.type!=='unfilled'&&t.type!=='removed'){
-      // Check X button
+      // Only X button removes tile
       if(isOverXBtn(sx,sy,t)){
-        toolbox.push({tile:{...t},ri:hoverTile.ri});
+        toolbox.push({tile:{...t}});
         t._origType=t.type;t.type='removed';
-        hoverTile=null;updateToolbox();renderStats();qr();return}
-      // Start drag
-      mdPos={x:sx,y:sy};mdVert=-1;mdWall=-1;didDrag=false;
-      dragTile={ri:hoverTile.ri,ti:hoverTile.ti,offX:sx-w2x(t.x),offY:sy-w2y(t.y)};
-      return}}
+        hoverTile=null;consolidateToolbox();updateToolbox();renderStats();qr();return}
+    }}
   hideWallInput();mdPos={x:sx,y:sy};didDrag=false;
   mdVert=hitVertex(sx,sy);if(mdVert>=0){mdWall=-1;return}
   mdWall=hitWall(sx,sy);if(mdWall>=0)return;
@@ -614,11 +600,6 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
 C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;const rwx=s2wx(sx),rwy=s2wy(sy);
   $('coords').textContent=`${fmtIn(rwx)} , ${fmtIn(rwy)}`;
   if(panning){ox=panOX+(sx-panSX);oy=panOY+(sy-panSY);qr();return}
-  // Dragging a tile
-  if(dragTile){dragTilePos={x:sx-dragTile.offX,y:sy-dragTile.offY};
-    // Update hover for drop target
-    hoverTile=hitTile(sx,sy);
-    C.style.cursor='grabbing';qr();return}
   if(mdVert>=0&&mdPos&&!didDrag){const dx=sx-mdPos.x,dy=sy-mdPos.y;if(dx*dx+dy*dy>DT*DT){didDrag=true;dragVert=mdVert;if(shouldSnap())beginCD(mdVert);else dragWallOrients=null}}
   if(dragVert>=0){const as=alignSnap(rwx,rwy,dragVert);R().verts[dragVert].x=as.x;R().verts[dragVert].y=as.y;
     if(shouldSnap()&&dragWallOrients)applyCD(dragVert);simResults=null;C.style.cursor='grabbing';qr();return}
@@ -631,30 +612,18 @@ C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;const rwx=s2w
     const changed=ht===null?hoverTile!==null:(hoverTile===null||ht.ri!==hoverTile.ri||ht.ti!==hoverTile.ti);
     if(changed){hoverTile=ht;qr()}
   }else if(hoverTile){hoverTile=null;qr()}
-  // Cursor
   if(heldTile)C.style.cursor='copy';
   else if(hoverVert>=0)C.style.cursor='grab';
   else if(hoverWall>=0)C.style.cursor='pointer';
   else if(isBM&&hoverTile){
     const t=simResults.rooms[hoverTile.ri].tiles[hoverTile.ti];
-    C.style.cursor=t.type==='unfilled'?(heldTile?'copy':'default'):'grab';
+    if(t.type!=='unfilled'&&t.type!=='removed')C.style.cursor=isOverXBtn(sx,sy,t)?'pointer':'default';
+    else C.style.cursor='default';
   }else C.style.cursor=drawFrom>=0&&!rm.closed?'crosshair':'default';
   qr()});
 
 C.addEventListener('mouseup',e=>{
   if(panning){panning=false;C.style.cursor=drawFrom>=0&&!R().closed?'crosshair':'default';return}
-  // Drop dragged tile
-  if(dragTile){
-    const sx=e.clientX,sy=e.clientY;
-    const drop=hitTile(sx,sy);
-    const srcT=simResults.rooms[dragTile.ri].tiles[dragTile.ti];
-    if(drop){const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
-      if(dstT.type==='unfilled'){
-        // Place dragged tile into unfilled slot
-        dstT.type=srcT.type;dstT.cutEdges=srcT.cutEdges;dstT._reallocated=true;
-        srcT._origType=srcT.type;srcT.type='removed';
-        renderStats()}}
-    dragTile=null;dragTilePos=null;C.style.cursor='default';qr();return}
   if(dragVert>=0){dragVert=-1;dragWallOrients=null;alignGuides=[];C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
   const sx=e.clientX,rm=R(),vs=rm.verts;
   if(mdVert>=0&&!didDrag){
@@ -702,13 +671,24 @@ function resetView(){
   ox=pad+220+(sw/2)-((mnx+mxx)/2)*scale;oy=pad+(sh/2)-((mny+mxy)/2)*scale;qr()}
 
 // ===== TOOLBOX =====
+function consolidateToolbox(){
+  const tw=parseFloat($('tileW').value)||24,th=parseFloat($('tileH').value)||24,TOL=0.125;
+  let changed=true;
+  while(changed){changed=false;
+    for(let i=0;i<toolbox.length;i++){const a=toolbox[i].tile;
+      for(let j=i+1;j<toolbox.length;j++){const b=toolbox[j].tile;
+        if(Math.abs(a.h-b.h)<TOL&&Math.abs(a.w+b.w-tw)<TOL){
+          toolbox[i]={tile:{w:tw,h:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}}};
+          toolbox.splice(j,1);changed=true;break}
+        if(Math.abs(a.w-b.w)<TOL&&Math.abs(a.h+b.h-th)<TOL){
+          toolbox[i]={tile:{w:tw,h:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}}};
+          toolbox.splice(j,1);changed=true;break}}
+      if(changed)break}}
+}
+
 function updateToolbox(){
   const el=$('toolbox'),items=$('toolboxItems'),cnt=$('tbCount'),held=$('heldLabel');
-  if(!simResults||simResults.mode!=='budget'||toolbox.length===0){
-    el.style.display=toolbox.length?'block':'none';
-    if(!toolbox.length){held.style.display='none';heldTile=null}
-  }
-  if(toolbox.length===0){el.style.display='none';return}
+  if(toolbox.length===0){el.style.display='none';heldTile=null;held.style.display='none';return}
   el.style.display='block';
   cnt.textContent=`(${toolbox.length})`;
   const colors={full:'#4a90d9',cut:'#e6a23c',reused:'#67c23a'};
@@ -719,7 +699,6 @@ function updateToolbox(){
     return`<div onclick="pickUpTile(${i})" style="display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:4px;cursor:pointer;font-size:11px;border:1px solid ${sel?c:'transparent'};background:${sel?c+'20':'var(--surface2)'}">
       <div style="width:8px;height:8px;border-radius:2px;background:${c};flex-shrink:0"></div>
       <span style="flex:1">${l} ${tb.tile.w}"×${tb.tile.h}"</span>
-      <span style="color:var(--muted);font-size:10px">${rooms[tb.ri]?.name||''}</span>
     </div>`}).join('');
   held.style.display=heldTile?'block':'none';
 }
