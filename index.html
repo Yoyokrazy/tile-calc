@@ -3,737 +3,617 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tile Calculator</title>
+<title>Tile Calc</title>
 <style>
-  :root {
-    --bg: #1a1a2e;
-    --surface: #16213e;
-    --surface2: #0f3460;
-    --accent: #e94560;
-    --accent2: #533483;
-    --text: #eee;
-    --text-muted: #999;
-    --grid-line: #2a2a4a;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--grid-line);
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
-  .controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .control-group {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--bg);
-    border-radius: 6px;
-    padding: 4px 8px;
-  }
-  .control-group label {
-    font-size: 11px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .control-group input {
-    width: 48px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-size: 14px;
-    text-align: center;
-    outline: none;
-  }
-  .control-group .unit {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-  select {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--grid-line);
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  button {
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s;
-  }
-  button:hover { opacity: 0.85; }
-  button.secondary {
-    background: var(--surface2);
-  }
-  .main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
-  .grid-panel {
-    flex: 1;
-    overflow: auto;
-    padding: 16px;
-    position: relative;
-  }
-  .grid-wrapper {
-    display: inline-block;
-    position: relative;
-  }
-  canvas {
-    display: block;
-    cursor: crosshair;
-    border-radius: 4px;
-  }
-  .sidebar {
-    width: 280px;
-    min-width: 280px;
-    background: var(--surface);
-    border-left: 1px solid var(--grid-line);
-    padding: 16px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .sidebar h2 {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .stat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .stat {
-    background: var(--bg);
-    border-radius: 8px;
-    padding: 10px;
-  }
-  .stat .value {
-    font-size: 22px;
-    font-weight: 700;
-  }
-  .stat .label {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-  .stat.highlight .value { color: var(--accent); }
-  .stat.full-width { grid-column: 1 / -1; }
-  .legend {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-  }
-  .legend-swatch {
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
-    flex-shrink: 0;
-  }
-  .instructions {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-  .instructions kbd {
-    background: var(--bg);
-    border: 1px solid var(--grid-line);
-    border-radius: 3px;
-    padding: 1px 4px;
-    font-size: 11px;
-    font-family: inherit;
-  }
-  .offcut-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: 120px;
-    overflow-y: auto;
-  }
-  .offcut-item {
-    font-size: 12px;
-    background: var(--bg);
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-  }
-  .offcut-item .dims { color: var(--text); }
-  .offcut-item .status { color: var(--text-muted); }
-  .direction-toggle {
-    display: flex;
-    gap: 4px;
-  }
-  .direction-toggle button {
-    padding: 4px 10px;
-    font-size: 12px;
-    background: var(--bg);
-    border: 1px solid var(--grid-line);
-  }
-  .direction-toggle button.active {
-    background: var(--accent);
-    border-color: var(--accent);
-  }
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#111;font-family:system-ui,sans-serif;color:#ddd}
+canvas{display:block}
+#toolbar{position:fixed;top:12px;left:12px;display:flex;gap:8px;align-items:center;
+  background:rgba(20,20,30,0.92);border:1px solid #333;border-radius:8px;padding:6px 12px;
+  backdrop-filter:blur(8px);z-index:10;flex-wrap:wrap;max-width:calc(100vw - 320px)}
+#toolbar label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.3px}
+#toolbar input,#toolbar select{background:#1a1a2a;color:#ddd;border:1px solid #333;
+  border-radius:4px;padding:3px 6px;font-size:13px;width:52px}
+#toolbar select{width:auto}
+#toolbar .sep{width:1px;height:20px;background:#333}
+button{background:#e94560;color:#fff;border:none;border-radius:5px;padding:5px 12px;
+  font-size:12px;font-weight:600;cursor:pointer}
+button:hover{opacity:.85}
+button.sec{background:#333}
+#mode{font-size:12px;font-weight:600;color:#e94560;min-width:60px}
+#coords{position:fixed;bottom:12px;left:12px;font-size:12px;color:#666;
+  background:rgba(20,20,30,.85);padding:4px 10px;border-radius:4px;z-index:10}
+#stats{position:fixed;top:12px;right:12px;width:240px;background:rgba(20,20,30,0.92);
+  border:1px solid #333;border-radius:8px;padding:12px;backdrop-filter:blur(8px);
+  z-index:10;display:none}
+#stats h3{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.st{background:#1a1a2a;border-radius:6px;padding:8px}
+.st .v{font-size:18px;font-weight:700}
+.st .l{font-size:10px;color:#888;margin-top:2px}
+.st.hl .v{color:#e94560}
+.st.fw{grid-column:1/-1}
+.legend{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+.legend-i{display:flex;align-items:center;gap:6px;font-size:11px}
+.legend-s{width:14px;height:14px;border-radius:2px;flex-shrink:0}
+#wallInput{position:fixed;z-index:20;display:none;background:rgba(20,20,30,.95);
+  border:1px solid #e94560;border-radius:6px;padding:6px 10px;transform:translate(-50%,-120%)}
+#wallInput input{background:transparent;border:none;color:#fff;font-size:14px;
+  width:80px;text-align:center;outline:none;font-weight:600}
+#wallInput .hint{font-size:10px;color:#888;text-align:center}
+#help{position:fixed;bottom:12px;right:12px;font-size:11px;color:#555;
+  background:rgba(20,20,30,.85);padding:8px 12px;border-radius:6px;z-index:10;
+  line-height:1.6;max-width:260px}
+#help kbd{background:#1a1a2a;border:1px solid #333;border-radius:2px;padding:0 3px;font-family:inherit}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>🔲 Tile Calc</h1>
-  <div class="controls">
-    <div class="control-group">
-      <label>Room</label>
-      <input type="number" id="roomW" value="12" min="1" max="50" step="1">
-      <span class="unit">×</span>
-      <input type="number" id="roomH" value="10" min="1" max="50" step="1">
-      <span class="unit">ft</span>
-    </div>
-    <div class="control-group">
-      <label>Tile</label>
-      <input type="number" id="tileW" value="24" min="1" max="120" step="1">
-      <span class="unit">×</span>
-      <input type="number" id="tileH" value="24" min="1" max="120" step="1">
-      <span class="unit">in</span>
-    </div>
-    <div class="control-group">
-      <label>Gap</label>
-      <input type="number" id="gapSize" value="0.125" min="0" max="1" step="0.0625">
-      <span class="unit">in</span>
-    </div>
-    <select id="pattern">
-      <option value="grid">Grid</option>
-      <option value="brick">Brick (½ offset)</option>
-      <option value="third">Brick (⅓ offset)</option>
-    </select>
-    <div class="direction-toggle">
-      <button id="dirH" class="active" onclick="setDirection('horizontal')">→ Horizontal</button>
-      <button id="dirV" onclick="setDirection('vertical')">↓ Vertical</button>
-    </div>
-    <button onclick="simulate()">Simulate</button>
-    <button class="secondary" onclick="clearRoom()">Clear Room</button>
-  </div>
-</header>
+<canvas id="c"></canvas>
 
-<div class="main">
-  <div class="grid-panel">
-    <div class="grid-wrapper">
-      <canvas id="canvas"></canvas>
-    </div>
+<div id="toolbar">
+  <span id="mode">DRAW</span>
+  <div class="sep"></div>
+  <label>Tile</label>
+  <input id="tileW" type="number" value="24" min="1" max="120" step="1">
+  <span style="color:#666">×</span>
+  <input id="tileH" type="number" value="24" min="1" max="120" step="1">
+  <span style="font-size:11px;color:#666">in</span>
+  <div class="sep"></div>
+  <label>Gap</label>
+  <input id="gap" type="number" value="0.125" min="0" max="2" step="0.0625" style="width:58px">
+  <div class="sep"></div>
+  <select id="pattern">
+    <option value="grid">Grid</option>
+    <option value="brick">½ Brick</option>
+    <option value="third">⅓ Brick</option>
+  </select>
+  <div class="sep"></div>
+  <button onclick="simulate()">Simulate</button>
+  <button class="sec" onclick="clearAll()">Clear</button>
+  <button class="sec" onclick="resetView()">Fit</button>
+</div>
+
+<div id="coords">0" , 0"</div>
+
+<div id="stats">
+  <h3>Results</h3>
+  <div class="sg">
+    <div class="st hl fw"><div class="v" id="sToBuy">—</div><div class="l">Tiles to buy</div></div>
+    <div class="st"><div class="v" id="sFull">—</div><div class="l">Full tiles</div></div>
+    <div class="st"><div class="v" id="sCut">—</div><div class="l">Cut tiles</div></div>
+    <div class="st"><div class="v" id="sReused">—</div><div class="l">Offcuts reused</div></div>
+    <div class="st"><div class="v" id="sWaste">—</div><div class="l">Waste %</div></div>
+    <div class="st"><div class="v" id="sRoom">—</div><div class="l">Room ft²</div></div>
+    <div class="st"><div class="v" id="sTile">—</div><div class="l">Tile ft²</div></div>
   </div>
-  <div class="sidebar">
-    <div>
-      <h2>Instructions</h2>
-      <div class="instructions">
-        <kbd>Click + drag</kbd> to draw room shape<br>
-        <kbd>Right-click + drag</kbd> to erase<br>
-        <kbd>Shift + click</kbd> to flood fill<br>
-        Set dimensions, tile size, pattern, then hit <kbd>Simulate</kbd>.
-      </div>
-    </div>
-    <div>
-      <h2>Results</h2>
-      <div class="stat-grid">
-        <div class="stat highlight full-width">
-          <div class="value" id="tilesToBuy">—</div>
-          <div class="label">Tiles to buy</div>
-        </div>
-        <div class="stat">
-          <div class="value" id="fullTiles">—</div>
-          <div class="label">Full tiles</div>
-        </div>
-        <div class="stat">
-          <div class="value" id="cutTiles">—</div>
-          <div class="label">Cut tiles</div>
-        </div>
-        <div class="stat">
-          <div class="value" id="reusedCuts">—</div>
-          <div class="label">Offcuts reused</div>
-        </div>
-        <div class="stat">
-          <div class="value" id="wastePercent">—</div>
-          <div class="label">Waste %</div>
-        </div>
-        <div class="stat">
-          <div class="value" id="roomArea">—</div>
-          <div class="label">Room area (ft²)</div>
-        </div>
-        <div class="stat">
-          <div class="value" id="tileArea">—</div>
-          <div class="label">Tile coverage (ft²)</div>
-        </div>
-      </div>
-    </div>
-    <div>
-      <h2>Legend</h2>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-swatch" style="background:#4a90d9"></div> Full tile</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#e6a23c"></div> Cut tile (new)</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#67c23a"></div> Reused offcut</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#f56c6c55"></div> Waste</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#2a2a4a"></div> Not room</div>
-      </div>
-    </div>
-    <div>
-      <h2>Offcut Inventory</h2>
-      <div class="offcut-list" id="offcutList">
-        <div class="offcut-item"><span class="dims">Run simulation to see offcuts</span></div>
-      </div>
-    </div>
+  <div class="legend">
+    <div class="legend-i"><div class="legend-s" style="background:#4a90d9"></div>Full tile</div>
+    <div class="legend-i"><div class="legend-s" style="background:#e6a23c"></div>Cut (new tile)</div>
+    <div class="legend-i"><div class="legend-s" style="background:#67c23a"></div>Reused offcut</div>
   </div>
 </div>
 
-<script>
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+<div id="wallInput">
+  <input id="wlIn" type="text" placeholder="length">
+  <div class="hint">inches · Enter to set</div>
+</div>
 
-// State
-let CELL_PX = 40; // pixels per inch at current zoom
-let roomWidthFt = 12;
-let roomHeightFt = 10;
-let room = []; // 2D array of booleans, indexed by inch
-let tiles = []; // placed tile rects for rendering
-let direction = 'horizontal';
+<div id="help">
+  <kbd>Click</kbd> place vertex · <kbd>Shift</kbd> constrain H/V<br>
+  <kbd>Click 1st</kbd> close room · <kbd>Backspace</kbd> undo vertex<br>
+  <kbd>Right-drag</kbd> pan · <kbd>Scroll</kbd> zoom<br>
+  Edit: <kbd>drag</kbd> vertices · <kbd>click</kbd> wall → set length<br>
+  <kbd>Dbl-click</kbd> wall → add vertex · <kbd>Del</kbd> remove vertex
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const C = $('c'), ctx = C.getContext('2d');
+
+// ===== STATE =====
+let verts = [];
+let closed = false;
+let mode = 'draw';
+let scale = 4; // px per inch
+let ox = 100, oy = 100; // screen offset for world origin
+
+let hoverVert = -1, hoverWall = -1;
+let selWall = -1;
+let dragVert = -1;
+let panning = false, panSX = 0, panSY = 0, panOX = 0, panOY = 0;
+let shiftDown = false;
+let ghostSnap = null;
+
+let tiles = [];
 let simulated = false;
 
-// Drawing state
-let isDrawing = false;
-let drawMode = true; // true = add, false = erase
+// ===== COORD TRANSFORMS =====
+function w2x(wx) { return wx * scale + ox; }
+function w2y(wy) { return wy * scale + oy; }
+function s2wx(sx) { return (sx - ox) / scale; }
+function s2wy(sy) { return (sy - oy) / scale; }
+function snapW(v) { return Math.round(v); }
+function worldToScreen(wx, wy) { return { x: w2x(wx), y: w2y(wy) }; }
+function distV(a, b) { return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2); }
 
-function inchesW() { return roomWidthFt * 12; }
-function inchesH() { return roomHeightFt * 12; }
-
-function initRoom() {
-  roomWidthFt = parseInt(document.getElementById('roomW').value) || 12;
-  roomHeightFt = parseInt(document.getElementById('roomH').value) || 10;
-  const w = inchesW(), h = inchesH();
-
-  // Scale cell size to fit reasonably
-  const panel = document.querySelector('.grid-panel');
-  const maxW = panel.clientWidth - 40;
-  const maxH = panel.clientHeight - 40;
-  CELL_PX = Math.max(0.5, Math.min(4, maxW / w, maxH / h));
-
-  room = Array.from({ length: h }, () => Array(w).fill(true));
-  tiles = [];
-  simulated = false;
-  resizeCanvas();
-  draw();
+function fmtIn(inches) {
+  const a = Math.abs(inches);
+  const ft = Math.floor(a / 12);
+  const inc = a % 12;
+  const sign = inches < 0 ? '-' : '';
+  if (ft === 0) return sign + (inc % 1 ? inc.toFixed(1) : Math.round(inc)) + '"';
+  if (inc < 0.05) return sign + ft + "'";
+  return sign + ft + "' " + (inc % 1 ? inc.toFixed(1) : Math.round(inc)) + '"';
 }
 
-function clearRoom() {
-  const w = inchesW(), h = inchesH();
-  room = Array.from({ length: h }, () => Array(w).fill(false));
-  tiles = [];
-  simulated = false;
-  draw();
-  clearStats();
+function parseLen(s) {
+  s = s.trim();
+  let m = s.match(/^(\d+\.?\d*)\s*'\s*(\d+\.?\d*)?\s*"?\s*$/);
+  if (m) return parseFloat(m[1]) * 12 + (m[2] ? parseFloat(m[2]) : 0);
+  m = s.match(/^(\d+\.?\d*)\s*"$/);
+  if (m) return parseFloat(m[1]);
+  m = s.match(/^(\d+\.?\d*)\s*'$/);
+  if (m) return parseFloat(m[1]) * 12;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
 }
 
-function resizeCanvas() {
-  canvas.width = inchesW() * CELL_PX;
-  canvas.height = inchesH() * CELL_PX;
-}
+// ===== GRID =====
+function drawGrid() {
+  const W = C.width, H = C.height;
+  const wx0 = s2wx(0), wx1 = s2wx(W);
+  const wy0 = s2wy(0), wy1 = s2wy(H);
 
-function setDirection(dir) {
-  direction = dir;
-  document.getElementById('dirH').classList.toggle('active', dir === 'horizontal');
-  document.getElementById('dirV').classList.toggle('active', dir === 'vertical');
-}
+  const spacings = [1, 2, 3, 6, 12, 24, 60, 120, 240, 600];
+  let minor = 12;
+  for (const sp of spacings) { if (sp * scale >= 20) { minor = sp; break; } }
+  const major = minor < 12 ? 12 : (minor <= 12 ? 60 : minor * 5);
 
-// Drawing
-function getCellFromEvent(e) {
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) / CELL_PX);
-  const y = Math.floor((e.clientY - rect.top) / CELL_PX);
-  return { x: Math.max(0, Math.min(x, inchesW() - 1)), y: Math.max(0, Math.min(y, inchesH() - 1)) };
-}
-
-// Use a brush size in inches for usability
-function getBrushRadius() {
-  return Math.max(1, Math.round(6)); // 6-inch brush
-}
-
-function paintCell(cx, cy) {
-  const r = getBrushRadius();
-  const w = inchesW(), h = inchesH();
-  for (let dy = -r; dy <= r; dy++) {
-    for (let dx = -r; dx <= r; dx++) {
-      const nx = cx + dx, ny = cy + dy;
-      if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
-        room[ny][nx] = drawMode;
-      }
-    }
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 0.5;
+  let start = Math.floor(wx0 / minor) * minor;
+  for (let x = start; x <= wx1; x += minor) {
+    const sx = w2x(x); ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
   }
-}
-
-function floodFill(sx, sy) {
-  const target = room[sy][sx];
-  const fill = !target;
-  const w = inchesW(), h = inchesH();
-  const stack = [[sx, sy]];
-  const visited = new Set();
-  while (stack.length > 0) {
-    const [x, y] = stack.pop();
-    const key = y * w + x;
-    if (visited.has(key)) continue;
-    if (x < 0 || x >= w || y < 0 || y >= h) continue;
-    if (room[y][x] !== target) continue;
-    visited.add(key);
-    room[y][x] = fill;
-    stack.push([x-1,y],[x+1,y],[x,y-1],[x,y+1]);
-  }
-}
-
-canvas.addEventListener('mousedown', (e) => {
-  e.preventDefault();
-  const { x, y } = getCellFromEvent(e);
-  if (e.shiftKey) {
-    floodFill(x, y);
-    simulated = false;
-    draw();
-    return;
-  }
-  isDrawing = true;
-  drawMode = e.button !== 2;
-  paintCell(x, y);
-  simulated = false;
-  draw();
-});
-
-canvas.addEventListener('mousemove', (e) => {
-  if (!isDrawing) return;
-  const { x, y } = getCellFromEvent(e);
-  paintCell(x, y);
-  draw();
-});
-
-canvas.addEventListener('mouseup', () => { isDrawing = false; });
-canvas.addEventListener('mouseleave', () => { isDrawing = false; });
-canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-
-// Rendering
-function draw() {
-  const w = inchesW(), h = inchesH();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Background (non-room)
-  ctx.fillStyle = '#1a1a2e';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Room cells
-  ctx.fillStyle = '#2c3e50';
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (room[y][x]) {
-        ctx.fillRect(x * CELL_PX, y * CELL_PX, CELL_PX, CELL_PX);
-      }
-    }
+  start = Math.floor(wy0 / minor) * minor;
+  for (let y = start; y <= wy1; y += minor) {
+    const sy = w2y(y); ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
   }
 
-  // Tiles overlay
-  if (simulated) {
-    for (const t of tiles) {
-      let color;
-      if (t.type === 'full') color = 'rgba(74, 144, 217, 0.6)';
-      else if (t.type === 'cut') color = 'rgba(230, 162, 60, 0.6)';
-      else if (t.type === 'reused') color = 'rgba(103, 194, 58, 0.6)';
-      else color = 'rgba(245, 108, 108, 0.2)';
-
-      ctx.fillStyle = color;
-      ctx.fillRect(t.x * CELL_PX, t.y * CELL_PX, t.w * CELL_PX, t.h * CELL_PX);
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-      ctx.lineWidth = 0.5;
-      ctx.strokeRect(t.x * CELL_PX + 0.5, t.y * CELL_PX + 0.5, t.w * CELL_PX - 1, t.h * CELL_PX - 1);
-    }
-  }
-
-  // Grid lines at foot intervals
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth = 1;
-  for (let ft = 0; ft <= roomWidthFt; ft++) {
-    const x = ft * 12 * CELL_PX;
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  start = Math.floor(wx0 / major) * major;
+  for (let x = start; x <= wx1; x += major) {
+    const sx = w2x(x); ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
   }
-  for (let ft = 0; ft <= roomHeightFt; ft++) {
-    const y = ft * 12 * CELL_PX;
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  start = Math.floor(wy0 / major) * major;
+  for (let y = start; y <= wy1; y += major) {
+    const sy = w2y(y); ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
   }
 
-  // Foot labels
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = `${Math.max(8, CELL_PX * 6)}px system-ui`;
-  for (let ft = 0; ft < roomWidthFt; ft++) {
-    ctx.fillText(`${ft + 1}'`, ft * 12 * CELL_PX + 2, Math.max(8, CELL_PX * 7));
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.font = '10px system-ui';
+  ctx.textBaseline = 'top';
+  start = Math.floor(wx0 / major) * major;
+  for (let x = start; x <= wx1; x += major) {
+    ctx.fillText(fmtIn(x), w2x(x) + 3, 4);
+  }
+  ctx.textBaseline = 'middle';
+  start = Math.floor(wy0 / major) * major;
+  for (let y = start; y <= wy1; y += major) {
+    if (y === 0) continue;
+    ctx.fillText(fmtIn(y), 4, w2y(y));
+  }
+
+  // Origin axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1.5;
+  const osx = w2x(0), osy = w2y(0);
+  if (osx >= 0 && osx <= W) { ctx.beginPath(); ctx.moveTo(osx, 0); ctx.lineTo(osx, H); ctx.stroke(); }
+  if (osy >= 0 && osy <= H) { ctx.beginPath(); ctx.moveTo(0, osy); ctx.lineTo(W, osy); ctx.stroke(); }
+}
+
+// ===== ROOM RENDERING =====
+function drawRoom() {
+  if (verts.length === 0) return;
+  const n = verts.length;
+
+  if (closed) {
+    ctx.fillStyle = 'rgba(40, 60, 90, 0.35)';
+    ctx.beginPath();
+    ctx.moveTo(w2x(verts[0].x), w2y(verts[0].y));
+    for (let i = 1; i < n; i++) ctx.lineTo(w2x(verts[i].x), w2y(verts[i].y));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Walls
+  for (let i = 0; i < (closed ? n : n - 1); i++) {
+    const a = verts[i], b = verts[(i + 1) % n];
+    const sel = i === selWall, hov = i === hoverWall;
+    ctx.strokeStyle = sel ? '#e94560' : hov ? '#fff' : 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = sel ? 2.5 : hov ? 2 : 1.5;
+    ctx.beginPath(); ctx.moveTo(w2x(a.x), w2y(a.y)); ctx.lineTo(w2x(b.x), w2y(b.y)); ctx.stroke();
+  }
+
+  // Wall lengths
+  ctx.font = `${Math.max(9, Math.min(12, scale * 4))}px system-ui`;
+  for (let i = 0; i < (closed ? n : n - 1); i++) {
+    const a = verts[i], b = verts[(i + 1) % n];
+    const len = distV(a, b);
+    if (len < 1) continue;
+    const mx = (w2x(a.x) + w2x(b.x)) / 2;
+    const my = (w2y(a.y) + w2y(b.y)) / 2;
+    const isHoriz = Math.abs(b.x - a.x) > Math.abs(b.y - a.y);
+    ctx.fillStyle = i === selWall ? '#e94560' : 'rgba(255,255,255,0.5)';
+    ctx.textAlign = isHoriz ? 'center' : 'right';
+    ctx.textBaseline = isHoriz ? 'bottom' : 'middle';
+    ctx.fillText(fmtIn(len), mx + (isHoriz ? 0 : -10), my + (isHoriz ? -6 : 0));
+  }
+  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+
+  // Ghost line
+  if (mode === 'draw' && n > 0 && ghostSnap) {
+    const last = verts[n - 1];
+    ctx.strokeStyle = 'rgba(233,69,96,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(w2x(last.x), w2y(last.y));
+    ctx.lineTo(w2x(ghostSnap.x), w2y(ghostSnap.y)); ctx.stroke();
+    ctx.setLineDash([]);
+    const gl = distV(last, ghostSnap);
+    if (gl > 0) {
+      const gmx = (w2x(last.x) + w2x(ghostSnap.x)) / 2;
+      const gmy = (w2y(last.y) + w2y(ghostSnap.y)) / 2;
+      ctx.fillStyle = 'rgba(233,69,96,0.7)';
+      ctx.font = '11px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(fmtIn(gl), gmx, gmy - 8);
+      ctx.textAlign = 'start';
+    }
+  }
+
+  // Vertices
+  for (let i = 0; i < n; i++) {
+    const v = verts[i], sx = w2x(v.x), sy = w2y(v.y);
+    const r = i === hoverVert ? 6 : 4;
+    ctx.fillStyle = i === hoverVert ? '#fff' : (i === 0 && mode === 'draw' && n > 2 ? '#e94560' : '#ccc');
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+    if (i === 0 && mode === 'draw' && n > 2 && hoverVert === 0) {
+      ctx.strokeStyle = '#e94560'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sx, sy, 10, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+
+  // Snap cursor
+  if (mode === 'draw' && ghostSnap) {
+    const gx = w2x(ghostSnap.x), gy = w2y(ghostSnap.y);
+    ctx.strokeStyle = 'rgba(233,69,96,0.4)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(gx - 8, gy); ctx.lineTo(gx + 8, gy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(gx, gy - 8); ctx.lineTo(gx, gy + 8); ctx.stroke();
   }
 }
 
-// Simulation
-function simulate() {
-  roomWidthFt = parseInt(document.getElementById('roomW').value) || 12;
-  roomHeightFt = parseInt(document.getElementById('roomH').value) || 10;
-
-  const tileWIn = parseFloat(document.getElementById('tileW').value) || 24;
-  const tileHIn = parseFloat(document.getElementById('tileH').value) || 24;
-  const gapIn = parseFloat(document.getElementById('gapSize').value) || 0;
-  const pattern = document.getElementById('pattern').value;
-
-  // Effective tile dimensions including gap
-  const tw = tileWIn;
-  const th = tileHIn;
-  const gw = tw + gapIn;
-  const gh = th + gapIn;
-
-  const rw = inchesW();
-  const rh = inchesH();
-
-  // Ensure room is initialized at the right size
-  if (room.length !== rh || (room[0] && room[0].length !== rw)) {
-    initRoom();
+// ===== TILES =====
+function drawTiles() {
+  if (!simulated) return;
+  for (const t of tiles) {
+    let color;
+    if (t.type === 'full') color = 'rgba(74, 144, 217, 0.45)';
+    else if (t.type === 'cut') color = 'rgba(230, 162, 60, 0.45)';
+    else color = 'rgba(103, 194, 58, 0.45)';
+    ctx.fillStyle = color;
+    ctx.fillRect(w2x(t.x), w2y(t.y), t.w * scale, t.h * scale);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 0.5;
+    ctx.strokeRect(w2x(t.x), w2y(t.y), t.w * scale, t.h * scale);
   }
+}
+
+// ===== RENDER =====
+function render() {
+  C.width = window.innerWidth; C.height = window.innerHeight;
+  ctx.clearRect(0, 0, C.width, C.height);
+  drawGrid();
+  drawTiles();
+  drawRoom();
+}
+let rq = false;
+function qr() { if (!rq) { rq = true; requestAnimationFrame(() => { rq = false; render(); }); } }
+
+// ===== HIT TESTING =====
+function hitVertex(sx, sy, thresh = 12) {
+  for (let i = 0; i < verts.length; i++) {
+    if ((w2x(verts[i].x) - sx) ** 2 + (w2y(verts[i].y) - sy) ** 2 < thresh * thresh) return i;
+  }
+  return -1;
+}
+
+function ptSegDist2(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, lsq = dx * dx + dy * dy;
+  if (lsq === 0) return (px - ax) ** 2 + (py - ay) ** 2;
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lsq));
+  return (px - (ax + t * dx)) ** 2 + (py - (ay + t * dy)) ** 2;
+}
+
+function hitWall(sx, sy, thresh = 8) {
+  const n = closed ? verts.length : verts.length - 1;
+  for (let i = 0; i < n; i++) {
+    const a = verts[i], b = verts[(i + 1) % verts.length];
+    if (ptSegDist2(sx, sy, w2x(a.x), w2y(a.y), w2x(b.x), w2y(b.y)) < thresh * thresh) return i;
+  }
+  return -1;
+}
+
+// ===== POINT IN POLYGON =====
+function pip(px, py) {
+  let inside = false;
+  for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
+    const xi = verts[i].x, yi = verts[i].y, xj = verts[j].x, yj = verts[j].y;
+    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// ===== SIMULATION =====
+function simulate() {
+  if (!closed || verts.length < 3) return;
+  const tw = parseFloat($('tileW').value) || 24;
+  const th = parseFloat($('tileH').value) || 24;
+  const gap = parseFloat($('gap').value) || 0;
+  const pattern = $('pattern').value;
+  const gw = tw + gap, gh = th + gap;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const v of verts) {
+    minX = Math.min(minX, v.x); minY = Math.min(minY, v.y);
+    maxX = Math.max(maxX, v.x); maxY = Math.max(maxY, v.y);
+  }
+
+  const rw = Math.ceil(maxX - minX), rh = Math.ceil(maxY - minY);
+  const bitmap = new Uint8Array(rw * rh);
+  for (let y = 0; y < rh; y++)
+    for (let x = 0; x < rw; x++)
+      if (pip(minX + x + 0.5, minY + y + 0.5)) bitmap[y * rw + x] = 1;
 
   tiles = [];
-  let fullCount = 0;
-  let cutCount = 0;
-  let reusedCount = 0;
-  let newTilesUsed = 0;
-
-  // Offcuts: { w, h } in inches
+  let fullCount = 0, cutCount = 0, reusedCount = 0, newTiles = 0;
   const offcuts = [];
-  const TOLERANCE = 0.125; // 1/8 inch tolerance for matching
+  const TOL = 0.125;
 
-  function isRoomAt(x, y, w, h) {
-    // Check if any room cell exists in this rect
-    const x0 = Math.floor(x), y0 = Math.floor(y);
-    const x1 = Math.min(Math.ceil(x + w), rw);
-    const y1 = Math.min(Math.ceil(y + h), rh);
-    for (let cy = y0; cy < y1; cy++) {
-      for (let cx = x0; cx < x1; cx++) {
-        if (cy >= 0 && cy < rh && cx >= 0 && cx < rw && room[cy][cx]) return true;
-      }
-    }
-    return false;
+  function roomCells(rx, ry, rW, rH) {
+    let total = 0, inside = 0;
+    const x0 = Math.max(0, Math.floor(rx - minX)), y0 = Math.max(0, Math.floor(ry - minY));
+    const x1 = Math.min(rw, Math.ceil(rx + rW - minX)), y1 = Math.min(rh, Math.ceil(ry + rH - minY));
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { total++; if (bitmap[y * rw + x]) inside++; }
+    return { total, inside };
   }
 
-  function roomCoverage(x, y, w, h) {
-    // What portion of this rect is room?
-    let total = 0, inRoom = 0;
-    const x0 = Math.max(0, Math.floor(x));
-    const y0 = Math.max(0, Math.floor(y));
-    const x1 = Math.min(Math.ceil(x + w), rw);
-    const y1 = Math.min(Math.ceil(y + h), rh);
-    for (let cy = y0; cy < y1; cy++) {
-      for (let cx = x0; cx < x1; cx++) {
-        total++;
-        if (room[cy][cx]) inRoom++;
-      }
-    }
-    return { total, inRoom };
-  }
-
-  function findOffcut(needW, needH) {
-    // Find an offcut that's big enough (can be trimmed further)
+  function findOffcut(nw, nh) {
     for (let i = 0; i < offcuts.length; i++) {
-      const oc = offcuts[i];
-      if (oc.w >= needW - TOLERANCE && oc.h >= needH - TOLERANCE) {
+      const o = offcuts[i];
+      if ((o.w >= nw - TOL && o.h >= nh - TOL) || (o.h >= nw - TOL && o.w >= nh - TOL)) {
+        const ow = o.w >= nw - TOL && o.h >= nh - TOL ? o.w : o.h;
+        const oh = o.w >= nw - TOL && o.h >= nh - TOL ? o.h : o.w;
         offcuts.splice(i, 1);
-        // Remaining piece after cutting what we need
-        // Try to save the larger leftover
-        const remW = oc.w - needW;
-        const remH = oc.h - needH;
-        if (remW > 1 && oc.h > 1) {
-          offcuts.push({ w: remW, h: oc.h });
-        }
-        if (remH > 1 && needW > 1) {
-          offcuts.push({ w: needW, h: remH });
-        }
-        return true;
-      }
-      // Also try rotated
-      if (oc.h >= needW - TOLERANCE && oc.w >= needH - TOLERANCE) {
-        offcuts.splice(i, 1);
-        const remW = oc.h - needW;
-        const remH = oc.w - needH;
-        if (remW > 1) offcuts.push({ w: remW, h: oc.w });
-        if (remH > 1) offcuts.push({ w: needW, h: remH });
+        if (ow - nw > 1 && oh > 1) offcuts.push({ w: ow - nw, h: oh });
+        if (oh - nh > 1 && nw > 1) offcuts.push({ w: nw, h: oh - nh });
         return true;
       }
     }
     return false;
   }
 
-  // Place tiles in a grid/brick pattern, row by row
-  const rowsDir = direction === 'horizontal' ? 'y' : 'x';
-
-  // Iterate in tile-grid steps
-  const numRows = Math.ceil(rh / gh);
-  const numCols = Math.ceil(rw / gw);
-
+  const numRows = Math.ceil(rh / gh) + 1, numCols = Math.ceil(rw / gw) + 2;
   for (let row = 0; row < numRows; row++) {
-    for (let col = 0; col < numCols; col++) {
-      let offset = 0;
-      if (pattern === 'brick') offset = (row % 2) * (gw / 2);
-      else if (pattern === 'third') offset = (row % 3) * (gw / 3);
+    for (let col = -1; col < numCols; col++) {
+      let offX = 0;
+      if (pattern === 'brick') offX = (row % 2) * (gw / 2);
+      else if (pattern === 'third') offX = (row % 3) * (gw / 3);
+      const tx = minX + col * gw + offX, ty = minY + row * gh;
+      const effW = Math.min(tw, maxX - tx), effH = Math.min(th, maxY - ty);
+      if (effW <= 0 || effH <= 0 || tx + tw <= minX || ty + th <= minY) continue;
 
-      let x, y;
-      if (direction === 'horizontal') {
-        x = col * gw + offset;
-        y = row * gh;
+      const { total, inside } = roomCells(tx, ty, Math.min(tw, maxX - tx + 10), Math.min(th, maxY - ty + 10));
+      if (inside === 0) continue;
+
+      if (effW >= tw - TOL && effH >= th - TOL && inside === total) {
+        tiles.push({ x: tx, y: ty, w: tw, h: th, type: 'full' });
+        fullCount++; newTiles++;
       } else {
-        x = row * gh;
-        y = col * gw + offset;
-      }
-
-      // Clamp to room bounds
-      const effectiveW = Math.min(tw, rw - x);
-      const effectiveH = Math.min(th, rh - y);
-
-      if (effectiveW <= 0 || effectiveH <= 0) continue;
-      if (x >= rw || y >= rh) continue;
-
-      // Only place if this position overlaps room
-      if (!isRoomAt(x, y, effectiveW, effectiveH)) continue;
-
-      const isFull = Math.abs(effectiveW - tw) < TOLERANCE && Math.abs(effectiveH - th) < TOLERANCE;
-
-      if (isFull) {
-        const cov = roomCoverage(x, y, effectiveW, effectiveH);
-        if (cov.inRoom === cov.total) {
-          tiles.push({ x, y, w: effectiveW, h: effectiveH, type: 'full' });
-          fullCount++;
-          newTilesUsed++;
+        const nw = Math.min(tw, effW), nh = Math.min(th, effH);
+        if (findOffcut(nw, nh)) {
+          tiles.push({ x: tx, y: ty, w: nw, h: nh, type: 'reused' }); reusedCount++;
         } else {
-          // Full tile but partially in room — still need a full tile, just cutting it
-          const reused = findOffcut(effectiveW, effectiveH);
-          if (reused) {
-            tiles.push({ x, y, w: effectiveW, h: effectiveH, type: 'reused' });
-            reusedCount++;
-          } else {
-            tiles.push({ x, y, w: effectiveW, h: effectiveH, type: 'cut' });
-            cutCount++;
-            newTilesUsed++;
-            // Save offcut (the part that wasn't used)
-            const usedRatio = cov.inRoom / cov.total;
-            const wasteW = effectiveW * (1 - usedRatio);
-            if (wasteW > 2) {
-              offcuts.push({ w: wasteW, h: effectiveH });
-            }
-          }
-        }
-      } else {
-        // Edge tile — needs cutting
-        const reused = findOffcut(effectiveW, effectiveH);
-        if (reused) {
-          tiles.push({ x, y, w: effectiveW, h: effectiveH, type: 'reused' });
-          reusedCount++;
-        } else {
-          tiles.push({ x, y, w: effectiveW, h: effectiveH, type: 'cut' });
-          cutCount++;
-          newTilesUsed++;
-          // Save the offcut from the new tile
-          const remW = tw - effectiveW;
-          const remH = th - effectiveH;
-          if (remW > 1 && effectiveH > 1) {
-            offcuts.push({ w: remW, h: effectiveH });
-          }
-          if (remH > 1 && tw > 1) {
-            offcuts.push({ w: tw, h: remH });
-          }
+          tiles.push({ x: tx, y: ty, w: nw, h: nh, type: 'cut' }); cutCount++; newTiles++;
+          const remW = tw - nw, remH = th - nh;
+          if (remW > 1 && nh > 1) offcuts.push({ w: remW, h: nh });
+          if (remH > 1 && tw > 1) offcuts.push({ w: tw, h: remH });
         }
       }
     }
   }
 
   simulated = true;
-  draw();
+  let roomSqIn = 0;
+  for (let i = 0; i < bitmap.length; i++) if (bitmap[i]) roomSqIn++;
+  const roomFt2 = roomSqIn / 144, tileFt2 = (newTiles * tw * th) / 144;
+  const waste = tileFt2 > 0 ? Math.max(0, (tileFt2 - roomFt2) / tileFt2 * 100) : 0;
 
-  // Compute stats
-  let roomAreaSqIn = 0;
-  for (let y = 0; y < rh; y++)
-    for (let x = 0; x < rw; x++)
-      if (room[y][x]) roomAreaSqIn++;
+  $('sToBuy').textContent = newTiles;
+  $('sFull').textContent = fullCount;
+  $('sCut').textContent = cutCount;
+  $('sReused').textContent = reusedCount;
+  $('sWaste').textContent = waste.toFixed(1) + '%';
+  $('sRoom').textContent = roomFt2.toFixed(1);
+  $('sTile').textContent = tileFt2.toFixed(1);
+  $('stats').style.display = 'block';
+  qr();
+}
 
-  const roomAreaSqFt = roomAreaSqIn / 144;
-  const tileAreaSqFt = (newTilesUsed * tw * th) / 144;
-  const wasteArea = tileAreaSqFt - roomAreaSqFt;
-  const wastePct = tileAreaSqFt > 0 ? (wasteArea / tileAreaSqFt) * 100 : 0;
+// ===== WALL LENGTH EDITING =====
+function showWallInput(i) {
+  const a = verts[i], b = verts[(i + 1) % verts.length];
+  const len = distV(a, b);
+  const mid = worldToScreen((a.x + b.x) / 2, (a.y + b.y) / 2);
+  const el = $('wallInput'), inp = $('wlIn');
+  inp.value = len % 1 ? len.toFixed(1) : len.toString();
+  el.style.left = mid.x + 'px'; el.style.top = mid.y + 'px';
+  el.style.display = 'block';
+  inp.focus(); inp.select();
+}
 
-  document.getElementById('tilesToBuy').textContent = newTilesUsed;
-  document.getElementById('fullTiles').textContent = fullCount;
-  document.getElementById('cutTiles').textContent = cutCount;
-  document.getElementById('reusedCuts').textContent = reusedCount;
-  document.getElementById('wastePercent').textContent = Math.max(0, wastePct).toFixed(1) + '%';
-  document.getElementById('roomArea').textContent = roomAreaSqFt.toFixed(1);
-  document.getElementById('tileArea').textContent = tileAreaSqFt.toFixed(1);
+function hideWallInput() { $('wallInput').style.display = 'none'; }
 
-  // Offcut inventory
-  const offcutList = document.getElementById('offcutList');
-  if (offcuts.length === 0) {
-    offcutList.innerHTML = '<div class="offcut-item"><span class="dims">No usable offcuts remaining</span></div>';
-  } else {
-    offcutList.innerHTML = offcuts
-      .sort((a, b) => (b.w * b.h) - (a.w * a.h))
-      .slice(0, 20)
-      .map(oc => `<div class="offcut-item">
-        <span class="dims">${oc.w.toFixed(1)}" × ${oc.h.toFixed(1)}"</span>
-        <span class="status">${(oc.w * oc.h / 144).toFixed(2)} ft²</span>
-      </div>`).join('') +
-      (offcuts.length > 20 ? `<div class="offcut-item"><span class="dims">+${offcuts.length - 20} more</span></div>` : '');
+function applyWallLength() {
+  if (selWall < 0) return;
+  const len = parseLen($('wlIn').value);
+  if (len == null || len <= 0) return;
+  const a = verts[selWall], b = verts[(selWall + 1) % verts.length];
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const cur = Math.sqrt(dx * dx + dy * dy);
+  if (cur < 0.01) return;
+  const s = len / cur;
+  b.x = snapW(a.x + dx * s); b.y = snapW(a.y + dy * s);
+  simulated = false;
+  hideWallInput(); qr();
+}
+
+$('wlIn').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); applyWallLength(); }
+  if (e.key === 'Escape') { e.preventDefault(); hideWallInput(); selWall = -1; qr(); }
+  e.stopPropagation();
+});
+$('wlIn').addEventListener('keypress', e => e.stopPropagation());
+
+// ===== MOUSE EVENTS =====
+C.addEventListener('mousedown', e => {
+  const sx = e.clientX, sy = e.clientY;
+  const wx = snapW(s2wx(sx)), wy = snapW(s2wy(sy));
+
+  if (e.button === 1 || e.button === 2) {
+    panning = true; panSX = sx; panSY = sy; panOX = ox; panOY = oy;
+    C.style.cursor = 'grabbing'; e.preventDefault(); return;
   }
-}
 
-function clearStats() {
-  ['tilesToBuy','fullTiles','cutTiles','reusedCuts','wastePercent','roomArea','tileArea'].forEach(id => {
-    document.getElementById(id).textContent = '—';
-  });
-  document.getElementById('offcutList').innerHTML = '<div class="offcut-item"><span class="dims">Run simulation to see offcuts</span></div>';
-}
-
-// Input change listeners
-['roomW', 'roomH'].forEach(id => {
-  document.getElementById(id).addEventListener('change', initRoom);
+  if (mode === 'draw') {
+    if (verts.length > 2 && hitVertex(sx, sy) === 0) {
+      closed = true; mode = 'edit'; $('mode').textContent = 'EDIT'; qr(); return;
+    }
+    // Shift constrain
+    if (shiftDown && verts.length > 0) {
+      const last = verts[verts.length - 1];
+      if (Math.abs(wx - last.x) > Math.abs(wy - last.y))
+        verts.push({ x: wx, y: last.y });
+      else
+        verts.push({ x: last.x, y: wy });
+    } else {
+      verts.push({ x: wx, y: wy });
+    }
+    simulated = false; qr();
+  } else {
+    hideWallInput();
+    const vi = hitVertex(sx, sy);
+    if (vi >= 0) { dragVert = vi; selWall = -1; C.style.cursor = 'grabbing'; qr(); return; }
+    const wi = hitWall(sx, sy);
+    if (wi >= 0) {
+      if (e.detail === 2) {
+        const a = verts[wi], b = verts[(wi + 1) % verts.length];
+        const dx = b.x - a.x, dy = b.y - a.y, lsq = dx * dx + dy * dy;
+        if (lsq > 0) {
+          const rwx = s2wx(sx), rwy = s2wy(sy);
+          let t = Math.max(0.05, Math.min(0.95, ((rwx - a.x) * dx + (rwy - a.y) * dy) / lsq));
+          verts.splice(wi + 1, 0, { x: snapW(a.x + dx * t), y: snapW(a.y + dy * t) });
+          simulated = false;
+        }
+        selWall = -1; qr(); return;
+      }
+      selWall = wi; showWallInput(wi); qr(); return;
+    }
+    selWall = -1; qr();
+  }
 });
 
-// Init
-window.addEventListener('resize', () => { initRoom(); });
-initRoom();
-</script>
+C.addEventListener('mousemove', e => {
+  const sx = e.clientX, sy = e.clientY;
+  const rwx = s2wx(sx), rwy = s2wy(sy);
+  $('coords').textContent = `${fmtIn(rwx)} , ${fmtIn(rwy)}`;
 
+  if (panning) { ox = panOX + (sx - panSX); oy = panOY + (sy - panSY); qr(); return; }
+
+  if (dragVert >= 0) {
+    verts[dragVert].x = snapW(rwx); verts[dragVert].y = snapW(rwy);
+    simulated = false; qr(); return;
+  }
+
+  if (mode === 'draw') {
+    let wx = snapW(rwx), wy = snapW(rwy);
+    if (shiftDown && verts.length > 0) {
+      const last = verts[verts.length - 1];
+      if (Math.abs(wx - last.x) > Math.abs(wy - last.y)) wy = last.y; else wx = last.x;
+    }
+    ghostSnap = { x: wx, y: wy };
+    hoverVert = hitVertex(sx, sy);
+    qr();
+  } else {
+    hoverVert = hitVertex(sx, sy);
+    hoverWall = hoverVert < 0 ? hitWall(sx, sy) : -1;
+    C.style.cursor = hoverVert >= 0 ? 'grab' : hoverWall >= 0 ? 'pointer' : 'default';
+    qr();
+  }
+});
+
+C.addEventListener('mouseup', () => {
+  if (panning) { panning = false; C.style.cursor = mode === 'draw' ? 'crosshair' : 'default'; }
+  if (dragVert >= 0) { dragVert = -1; C.style.cursor = 'grab'; }
+});
+
+C.addEventListener('wheel', e => {
+  e.preventDefault();
+  const f = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  const ns = Math.max(0.15, Math.min(40, scale * f));
+  ox = e.clientX - (e.clientX - ox) * (ns / scale);
+  oy = e.clientY - (e.clientY - oy) * (ns / scale);
+  scale = ns; qr();
+}, { passive: false });
+
+C.addEventListener('contextmenu', e => e.preventDefault());
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  shiftDown = e.shiftKey;
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    if (mode === 'draw' && verts.length > 0) { verts.pop(); simulated = false; qr(); }
+    else if (mode === 'edit' && hoverVert >= 0 && verts.length > 3) {
+      verts.splice(hoverVert, 1); hoverVert = -1; simulated = false; qr();
+    }
+  }
+  if (e.key === 'Escape') {
+    if (mode === 'draw') { verts = []; ghostSnap = null; }
+    selWall = -1; hideWallInput(); qr();
+  }
+});
+document.addEventListener('keyup', e => { shiftDown = e.shiftKey; });
+
+function clearAll() {
+  verts = []; closed = false; mode = 'draw'; tiles = []; simulated = false;
+  selWall = -1; hoverVert = -1; hoverWall = -1;
+  hideWallInput(); $('mode').textContent = 'DRAW'; $('stats').style.display = 'none';
+  C.style.cursor = 'crosshair'; qr();
+}
+
+function resetView() {
+  if (verts.length === 0) { ox = 100; oy = 100; scale = 4; qr(); return; }
+  let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
+  for (const v of verts) { mnx = Math.min(mnx, v.x); mny = Math.min(mny, v.y); mxx = Math.max(mxx, v.x); mxy = Math.max(mxy, v.y); }
+  const pad = 80, sw = C.width - 280 - pad * 2, sh = C.height - pad * 2;
+  scale = Math.min(sw / (mxx - mnx || 1), sh / (mxy - mny || 1));
+  ox = pad - mnx * scale; oy = pad - mny * scale; qr();
+}
+
+window.addEventListener('resize', qr);
+C.style.cursor = 'crosshair';
+qr();
+</script>
 </body>
 </html>
