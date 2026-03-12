@@ -20,7 +20,8 @@ button{background:var(--accent);color:#fff;border:none;border-radius:5px;padding
 button svg{flex-shrink:0}
 button:hover{opacity:.85}
 button.sec{background:var(--border)}
-button.snap-on{background:var(--accent) !important}
+button.mode-active{background:var(--accent) !important;color:#fff !important}
+button.mode-inactive{background:var(--surface2) !important;color:var(--text) !important;border:1px solid var(--border)}
 #modeTag{font-size:12px;font-weight:600;color:var(--accent);min-width:50px}
 #coords{position:fixed;bottom:12px;left:12px;font-size:12px;color:var(--muted);background:var(--surface);padding:4px 10px;border-radius:4px;z-index:10}
 /* Room list panel */
@@ -84,12 +85,13 @@ button.snap-on{background:var(--accent) !important}
   <input id="tab" type="number" value="0.25" min="0" max="2" step="0.0625" style="width:56px">
   <span style="font-size:11px;color:var(--muted)">in</span>
   <div class="sep"></div>
-  <button onclick="simulate('calc')"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg> Calculate</button>
-  <button class="sec" onclick="simulate('budget')" id="budgetBtn" title="How far do my tiles go?"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M10.561 8.073a6.005 6.005 0 0 1 3.432 5.142.75.75 0 1 1-1.498.07 4.5 4.5 0 0 0-8.99 0 .75.75 0 0 1-1.498-.07 6.004 6.004 0 0 1 3.431-5.142 3.999 3.999 0 1 1 5.123 0ZM10.5 5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/></svg> Budget</button>
+  <button id="calcBtn" class="mode-active" onclick="simulate('calc')"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg> Calculate</button>
+  <button id="budgetBtn" class="mode-inactive" onclick="simulate('budget')"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M10.561 8.073a6.005 6.005 0 0 1 3.432 5.142.75.75 0 1 1-1.498.07 4.5 4.5 0 0 0-8.99 0 .75.75 0 0 1-1.498-.07 6.004 6.004 0 0 1 3.431-5.142 3.999 3.999 0 1 1 5.123 0ZM10.5 5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/></svg> Budget</button>
   <input id="budget" type="number" placeholder="tiles" min="1" step="1" style="width:58px;display:none" title="How many tiles do you have?" onchange="simulate()">
-  <button class="sec" onclick="openSaveDialog()" title="Save project"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/></svg></button>
-  <select id="savedProjects" onchange="loadProject()"><option value="">Load</option></select>
-  <button class="sec" onclick="deleteProject()" title="Delete saved"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"/></svg></button>
+  <div class="sep"></div>
+  <button class="sec" onclick="openSaveDialog('project')" title="Save project"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/></svg> Save</button>
+  <select id="savedProjects" onchange="loadSaved()"><option value="">Load</option></select>
+  <button class="sec" onclick="deleteSaved()" title="Delete saved"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"/></svg></button>
   <div class="sep"></div>
   <button class="sec" onclick="resetView()"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 10a.75.75 0 0 1 .75.75v2.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 1 13.25v-2.5a.75.75 0 0 1 .75-.75Zm12.5 0a.75.75 0 0 1 .75.75v2.5A1.75 1.75 0 0 1 13.25 15h-2.5a.75.75 0 0 1 0-1.5h2.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 .75-.75ZM2.75 2.5a.25.25 0 0 0-.25.25v2.5a.75.75 0 0 1-1.5 0v-2.5C1 1.784 1.784 1 2.75 1h2.5a.75.75 0 0 1 0 1.5ZM10 1.75a.75.75 0 0 1 .75-.75h2.5c.966 0 1.75.784 1.75 1.75v2.5a.75.75 0 0 1-1.5 0v-2.5a.25.25 0 0 0-.25-.25h-2.5a.75.75 0 0 1-.75-.75Z"/></svg> Fit</button>
 </div>
@@ -109,8 +111,16 @@ button.snap-on{background:var(--accent) !important}
 
 <div id="saveOverlay" onclick="closeSaveDialog()"></div>
 <div id="saveDialog">
-  <h3>Save Project</h3>
+  <h3 id="saveTitle">Save Project</h3>
   <input id="saveName" type="text" placeholder="e.g. Basement" autocomplete="off">
+  <div style="margin-top:8px;display:flex;gap:8px;font-size:12px">
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+      <input type="radio" name="saveType" value="project" checked> Project (rooms + config)
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+      <input type="radio" name="saveType" value="rooms"> Rooms only
+    </label>
+  </div>
   <div class="btns">
     <button onclick="confirmSave()">Save</button>
     <button class="sec" onclick="closeSaveDialog()">Cancel</button>
@@ -336,25 +346,37 @@ function drawRooms(){
 // ===== TILES =====
 function drawTiles(){
   if(!simResults)return;const lt=isLight();
+  const inset=Math.max(1,scale*0.3); // px inset from tile edge
   for(const rr of simResults.rooms){for(const t of rr.tiles){
-    const sx=w2x(t.x),sy=w2y(t.y),sw=t.w*scale,sh=t.h*scale;
+    const sx=w2x(t.x)+inset,sy=w2y(t.y)+inset,sw=t.w*scale-inset*2,sh=t.h*scale-inset*2;
+    if(sw<=0||sh<=0)continue;
     if(t.type==='full')ctx.fillStyle=lt?'rgba(74,144,217,0.3)':'rgba(74,144,217,0.45)';
     else if(t.type==='cut')ctx.fillStyle=lt?'rgba(230,162,60,0.3)':'rgba(230,162,60,0.45)';
     else if(t.type==='reused')ctx.fillStyle=lt?'rgba(103,194,58,0.3)':'rgba(103,194,58,0.45)';
-    else ctx.fillStyle=lt?'rgba(200,50,50,0.1)':'rgba(200,50,50,0.15)'; // unfilled
+    else ctx.fillStyle=lt?'rgba(200,50,50,0.1)':'rgba(200,50,50,0.15)';
     ctx.fillRect(sx,sy,sw,sh);
     if(t.type==='unfilled'){ctx.strokeStyle=lt?'rgba(200,50,50,0.3)':'rgba(200,50,50,0.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeRect(sx,sy,sw,sh);ctx.setLineDash([]);continue}
-    if(t.type==='full')ctx.strokeStyle=lt?'rgba(50,110,180,0.6)':'rgba(100,170,230,0.5)';
-    else if(t.type==='cut')ctx.strokeStyle=lt?'rgba(190,130,30,0.6)':'rgba(240,180,80,0.5)';
-    else ctx.strokeStyle=lt?'rgba(70,160,40,0.6)':'rgba(120,210,80,0.5)';
-    ctx.lineWidth=Math.max(1,scale*.15);ctx.strokeRect(sx+.5,sy+.5,sw-1,sh-1);
-    if(t.cutEdges){const ce=t.cutEdges;
+    if(t.type==='full')ctx.strokeStyle=lt?'rgba(50,110,180,0.5)':'rgba(100,170,230,0.4)';
+    else if(t.type==='cut')ctx.strokeStyle=lt?'rgba(190,130,30,0.5)':'rgba(240,180,80,0.4)';
+    else ctx.strokeStyle=lt?'rgba(70,160,40,0.5)':'rgba(120,210,80,0.4)';
+    ctx.lineWidth=Math.max(1,scale*.12);ctx.strokeRect(sx,sy,sw,sh);
+    // Cut edges — drawn at true tile boundary (not inset)
+    if(t.cutEdges){const ce=t.cutEdges;const fx=w2x(t.x),fy=w2y(t.y),fw=t.w*scale,fh=t.h*scale;
       ctx.strokeStyle='rgba(245,80,80,0.85)';ctx.lineWidth=Math.max(2,scale*.35);ctx.setLineDash([4,3]);
-      if(ce.l){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx,sy+sh);ctx.stroke()}
-      if(ce.r){ctx.beginPath();ctx.moveTo(sx+sw,sy);ctx.lineTo(sx+sw,sy+sh);ctx.stroke()}
-      if(ce.t){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+sw,sy);ctx.stroke()}
-      if(ce.b){ctx.beginPath();ctx.moveTo(sx,sy+sh);ctx.lineTo(sx+sw,sy+sh);ctx.stroke()}
+      if(ce.l){ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy+fh);ctx.stroke()}
+      if(ce.r){ctx.beginPath();ctx.moveTo(fx+fw,fy);ctx.lineTo(fx+fw,fy+fh);ctx.stroke()}
+      if(ce.t){ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+fw,fy);ctx.stroke()}
+      if(ce.b){ctx.beginPath();ctx.moveTo(fx,fy+fh);ctx.lineTo(fx+fw,fy+fh);ctx.stroke()}
       ctx.setLineDash([])}}}
+  // Room outlines on top — thick dark border
+  for(const rm of rooms){
+    if(!rm.closed||rm.verts.length<3)continue;
+    const vs=rm.verts,n=vs.length;
+    ctx.strokeStyle=lt?'rgba(0,0,0,0.7)':'rgba(255,255,255,0.6)';
+    ctx.lineWidth=Math.max(2.5,scale*0.2);
+    ctx.beginPath();ctx.moveTo(w2x(vs[0].x),w2y(vs[0].y));
+    for(let i=1;i<n;i++)ctx.lineTo(w2x(vs[i].x),w2y(vs[i].y));
+    ctx.closePath();ctx.stroke()}
 }
 
 function render(){C.width=innerWidth;C.height=innerHeight;ctx.clearRect(0,0,C.width,C.height);drawGrid();drawTiles();drawRooms()}
@@ -419,12 +441,12 @@ let simMode='calc'; // 'calc' or 'budget'
 
 function simulate(mode){
   if(mode){simMode=mode}
-  // Toggle budget input visibility
+  // Toggle mode button styles
+  $('calcBtn').className=simMode==='calc'?'mode-active':'mode-inactive';
+  $('budgetBtn').className=simMode==='budget'?'mode-active':'mode-inactive';
   const budgetEl=$('budget');
-  if(simMode==='budget'){
-    budgetEl.style.display='';
-    if(!budgetEl.value)budgetEl.focus();
-  }
+  if(simMode==='budget'){budgetEl.style.display='';if(!budgetEl.value){budgetEl.focus();return}}
+  else{budgetEl.style.display='none'}
   const tw=parseFloat($('tileW').value)||24,th=parseFloat($('tileH').value)||24;
   let totalBudget=null;
   if(simMode==='budget'){const bv=budgetEl.value.trim();totalBudget=bv?parseInt(bv):null;if(!totalBudget)return}
@@ -581,29 +603,39 @@ function resetView(){
   ox=pad+220+(sw/2)-((mnx+mxx)/2)*scale;oy=pad+(sh/2)-((mny+mxy)/2)*scale;qr()}
 
 // ===== SAVE/LOAD =====
-const SKEY='tilecalc_projects';
+const SKEY='tilecalc_saves';
 function getSaved(){try{return JSON.parse(localStorage.getItem(SKEY))||[]}catch(e){return[]}}
 function setSaved(r){try{localStorage.setItem(SKEY,JSON.stringify(r))}catch(e){}}
 function populateLoad(){const sel=$('savedProjects'),saved=getSaved();
-  sel.innerHTML='<option value="">Load</option>'+saved.map((r,i)=>`<option value="${i}">${r.name}</option>`).join('')}
+  sel.innerHTML='<option value="">Load</option>'+saved.map((r,i)=>{
+    const tag=r.type==='rooms'?'[R]':'[P]';
+    return`<option value="${i}">${tag} ${r.name}</option>`}).join('')}
 function openSaveDialog(){$('saveDialog').style.display='block';$('saveOverlay').style.display='block';$('saveName').focus()}
 function closeSaveDialog(){$('saveDialog').style.display='none';$('saveOverlay').style.display='none';$('saveName').value=''}
 function confirmSave(){const name=$('saveName').value.trim();if(!name)return;
+  const type=document.querySelector('input[name="saveType"]:checked').value;
   const saved=getSaved();const idx=saved.findIndex(r=>r.name===name);if(idx>=0)saved.splice(idx,1);
-  saved.push({name,rooms:rooms.map(r=>({name:r.name,verts:r.verts.map(v=>({x:v.x,y:v.y})),closed:r.closed,priority:r.priority,color:r.color})),
-    tileW:parseFloat($('tileW').value)||24,tileH:parseFloat($('tileH').value)||24,
-    tabDepth:parseFloat($('tab').value)||.25,budget:$('budget').value.trim(),snapMode,savedAt:new Date().toISOString()});
+  const roomData=rooms.map(r=>({name:r.name,verts:r.verts.map(v=>({x:v.x,y:v.y})),closed:r.closed,priority:r.priority,color:r.color}));
+  if(type==='rooms'){
+    saved.push({name,type:'rooms',rooms:roomData,savedAt:new Date().toISOString()});
+  }else{
+    saved.push({name,type:'project',rooms:roomData,
+      tileW:parseFloat($('tileW').value)||24,tileH:parseFloat($('tileH').value)||24,
+      tabDepth:parseFloat($('tab').value)||.25,budget:$('budget').value.trim(),snapMode,savedAt:new Date().toISOString()});
+  }
   setSaved(saved);populateLoad();closeSaveDialog()}
 $('saveName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();confirmSave()}if(e.key==='Escape'){e.preventDefault();closeSaveDialog()}e.stopPropagation()});
-function loadProject(){const sel=$('savedProjects'),idx=parseInt(sel.value);if(isNaN(idx))return;
+function loadSaved(){const sel=$('savedProjects'),idx=parseInt(sel.value);if(isNaN(idx))return;
   const p=getSaved()[idx];if(!p)return;
   rooms=p.rooms.map(r=>({name:r.name,verts:r.verts.map(v=>({x:v.x,y:v.y})),closed:r.closed,priority:r.priority,color:r.color}));
   activeRoom=0;drawFrom=-1;
-  $('tileW').value=p.tileW||24;$('tileH').value=p.tileH||24;$('tab').value=p.tabDepth||.25;
-  $('budget').value=p.budget||'';
-  if(p.snapMode!==undefined){snapMode=p.snapMode;$('snapBtn').classList.toggle('snap-on',snapMode);$('snapBtn').style.background=snapMode?'':'#333'}
+  if(p.type==='project'){
+    $('tileW').value=p.tileW||24;$('tileH').value=p.tileH||24;$('tab').value=p.tabDepth||.25;
+    $('budget').value=p.budget||'';
+    if(p.snapMode!==undefined){snapMode=p.snapMode;$('snapBtn').classList.toggle('snap-on',snapMode);$('snapBtn').style.background=snapMode?'':'#333'}
+  }
   simResults=null;sel.value='';updateModeTag();renderRoomList();resetView()}
-function deleteProject(){const sel=$('savedProjects'),idx=parseInt(sel.value);if(isNaN(idx))return;
+function deleteSaved(){const sel=$('savedProjects'),idx=parseInt(sel.value);if(isNaN(idx))return;
   const saved=getSaved();if(!saved[idx])return;if(confirm(`Delete "${saved[idx].name}"?`)){saved.splice(idx,1);setSaved(saved);populateLoad()}}
 
 window.addEventListener('resize',qr);
