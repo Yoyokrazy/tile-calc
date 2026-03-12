@@ -366,10 +366,17 @@ function drawTiles(){
     if(t.type==='full')ctx.fillStyle=lt?'rgba(74,144,217,0.3)':'rgba(74,144,217,0.45)';
     else if(t.type==='cut')ctx.fillStyle=lt?'rgba(230,162,60,0.3)':'rgba(230,162,60,0.45)';
     else if(t.type==='reused')ctx.fillStyle=lt?'rgba(103,194,58,0.3)':'rgba(103,194,58,0.45)';
-    else ctx.fillStyle=lt?'rgba(200,50,50,0.1)':'rgba(200,50,50,0.15)';
+    else ctx.fillStyle=lt?'rgba(0,0,0,0.04)':'rgba(255,255,255,0.04)';
     ctx.fillRect(sx,sy,sw,sh);
     if(t.type==='unfilled'){
-      ctx.strokeStyle=lt?'rgba(200,50,50,0.3)':'rgba(200,50,50,0.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeRect(sx,sy,sw,sh);ctx.setLineDash([]);
+      // Grey border
+      ctx.strokeStyle=lt?'rgba(0,0,0,0.15)':'rgba(255,255,255,0.12)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeRect(sx,sy,sw,sh);ctx.setLineDash([]);
+      // Diagonal hatching
+      ctx.save();ctx.beginPath();ctx.rect(sx,sy,sw,sh);ctx.clip();
+      ctx.strokeStyle=lt?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.06)';ctx.lineWidth=1;
+      const step=Math.max(6,scale*3);
+      for(let d=-sh;d<sw+sh;d+=step){ctx.beginPath();ctx.moveTo(sx+d,sy);ctx.lineTo(sx+d-sh,sy+sh);ctx.stroke()}
+      ctx.restore();
       // Preview for held tile or dragged tile
       const srcDims=heldTile&&hd?hd:(dragTileInfo&&dragTileInfo.pos&&isHov?dragTileInfo.tileData:null);
       if(srcDims&&isHov){
@@ -544,7 +551,7 @@ function renderStats(){
   let html=`<h3>${isBudget?'Budget':'Calculate'}</h3><div class="sg">`;
   if(isBudget){
     html+=`<div class="st hl fw"><div class="v">${t.newT} / ${t.budget}</div><div class="l">Tiles used / available</div></div>`;
-    if(t.unfilled)html+=`<div class="st fw" style="background:rgba(200,50,50,.15)"><div class="v" style="color:#f56c6c">${t.unfilled}</div><div class="l">Unfilled (not enough tiles)</div></div>`;
+    if(t.unfilled)html+=`<div class="st fw"><div class="v">${t.unfilled}</div><div class="l">Unfilled (not enough tiles)</div></div>`;
   }else{
     html+=`<div class="st hl fw"><div class="v">${t.newT}</div><div class="l">Tiles needed</div></div>`;
   }
@@ -573,7 +580,7 @@ function renderStats(){
     <div class="legend-i"><div class="legend-s" style="background:#e6a23c"></div>Cut (new tile)</div>
     <div class="legend-i"><div class="legend-s" style="background:#67c23a"></div>Reused offcut</div>
     <div class="legend-i"><div class="legend-s" style="background:transparent;border:2px dashed #f56c6c"></div>Cut edge endcap</div>
-    ${isBudget?'<div class="legend-i"><div class="legend-s" style="background:rgba(200,50,50,.2);border:1px dashed rgba(200,50,50,.4)"></div>Unfilled (over budget)</div>':''}
+    ${isBudget?'<div class="legend-i"><div class="legend-s" style="background:var(--surface2);background-image:repeating-linear-gradient(135deg,transparent,transparent 3px,rgba(128,128,128,.15) 3px,rgba(128,128,128,.15) 4px)"></div>Unfilled (empty)</div>':''}
   </div>`;
   $('stats').innerHTML=html;$('stats').style.display='block';
 }
