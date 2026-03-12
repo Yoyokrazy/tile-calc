@@ -20,6 +20,7 @@ button{background:#e94560;color:#fff;border:none;border-radius:5px;padding:5px 1
   font-size:12px;font-weight:600;cursor:pointer}
 button:hover{opacity:.85}
 button.sec{background:#333}
+button.snap-on{background:#e94560 !important;border-color:#e94560 !important}
 #modeTag{font-size:12px;font-weight:600;color:#e94560;min-width:60px}
 #coords{position:fixed;bottom:12px;left:12px;font-size:12px;color:#666;
   background:rgba(20,20,30,.85);padding:4px 10px;border-radius:4px;z-index:10}
@@ -53,6 +54,8 @@ button.sec{background:#333}
 
 <div id="toolbar">
   <span id="modeTag">DRAW</span>
+  <div class="sep"></div>
+  <button id="snapBtn" class="snap-on" onclick="toggleSnap()">⊾ 90° Snap</button>
   <div class="sep"></div>
   <label>Tile</label>
   <input id="tileW" type="number" value="24" min="1" max="120" step="1">
@@ -100,13 +103,12 @@ button.sec{background:#333}
 </div>
 
 <div id="help">
-  <kbd>Click</kbd> place vertex · <kbd>Ctrl</kbd> lock 90°<br>
-  <kbd>Click 1st vertex</kbd> to close room<br>
-  <kbd>Esc</kbd> pause drawing · click last vertex to resume<br>
-  <kbd>Hold+drag</kbd> any vertex to move it<br>
-  <kbd>Click wall</kbd> to type exact length<br>
-  <kbd>Dbl-click wall</kbd> add vertex · <kbd>Del</kbd> remove vertex<br>
-  <kbd>Right-drag</kbd> pan · <kbd>Scroll</kbd> zoom
+  <kbd>Click</kbd> place vertex · <kbd>⊾ 90°</kbd> forces H/V<br>
+  <kbd>Esc</kbd> pause · click either end vertex to resume<br>
+  Click the <em>other</em> end vertex to close room<br>
+  <kbd>Hold+drag</kbd> vertex to move (neighbors adjust in 90°)<br>
+  <kbd>Click wall</kbd> type length · <kbd>Dbl-click</kbd> add vertex<br>
+  <kbd>Right-drag</kbd> pan · <kbd>Scroll</kbd> zoom · <kbd>Del</kbd> remove
 </div>
 
 <script>
@@ -116,25 +118,23 @@ const C = $('c'), ctx = C.getContext('2d');
 // ===== STATE =====
 let verts = [];
 let closed = false;
-let drawFrom = -1; // -1 = not actively drawing, N = drawing from vertex N
+let drawFrom = -1; // -1=paused, 0=prepending, last=appending
 let scale = 4;
 let ox = 100, oy = 100;
 
+let snapMode = true; // 90° lock always on by default
 let hoverVert = -1, hoverWall = -1;
 let selWall = -1;
 let dragVert = -1;
+let dragWallOrients = null; // {prev:'h'|'v'|null, next:'h'|'v'|null}
 let panning = false, panSX = 0, panSY = 0, panOX = 0, panOY = 0;
 let ctrlDown = false;
 let ghostSnap = null;
 
-// Click vs drag detection
-let mdPos = null; // mousedown position {x,y}
-let mdVert = -1;  // vertex index at mousedown
-let mdWall = -1;  // wall index at mousedown
-let didDrag = false;
+let mdPos = null, mdVert = -1, mdWall = -1, didDrag = false;
+let tiles = [], simulated = false;
 
-let tiles = [];
-let simulated = false;
+function shouldSnap() { return snapMode || ctrlDown; }
 
 // ===== COORD TRANSFORMS =====
 function w2x(wx) { return wx * scale + ox; }
@@ -167,16 +167,37 @@ function parseLen(s) {
 }
 
 function constrainHV(wx, wy, fromVert) {
-  if (!ctrlDown || !fromVert) return { x: wx, y: wy };
-  if (Math.abs(wx - fromVert.x) > Math.abs(wy - fromVert.y))
-    return { x: wx, y: fromVert.y };
-  return { x: fromVert.x, y: wy };
+  if (!shouldSnap() || !fromVert) return { x: snap(wx), y: snap(wy) };
+  const sx = snap(wx), sy = snap(wy);
+  if (Math.abs(sx - fromVert.x) >= Math.abs(sy - fromVert.y))
+    return { x: sx, y: fromVert.y };
+  return { x: fromVert.x, y: sy };
+}
+
+function wallOrient(a, b) {
+  return Math.abs(a.x - b.x) >= Math.abs(a.y - b.y) ? 'h' : 'v';
+}
+
+function closeTarget() {
+  return drawFrom === 0 ? verts.length - 1 : 0;
+}
+
+function isEndVertex(i) {
+  return i === 0 || i === verts.length - 1;
 }
 
 function updateModeTag() {
   if (closed) $('modeTag').textContent = 'EDIT';
   else if (drawFrom >= 0) $('modeTag').textContent = 'DRAW';
-  else $('modeTag').textContent = 'PAUSED';
+  else $('modeTag').textContent = verts.length > 0 ? 'PAUSED' : 'DRAW';
+}
+
+function toggleSnap() {
+  snapMode = !snapMode;
+  const btn = $('snapBtn');
+  btn.classList.toggle('snap-on', snapMode);
+  if (!snapMode) btn.style.background = '#333';
+  else btn.style.background = '';
 }
 
 // ===== GRID =====
@@ -218,36 +239,24 @@ function drawGrid() {
 function drawMeasurement(ax, ay, bx, by, wallIdx) {
   const len = Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
   if (len < 1) return;
-
   const sx1 = w2x(ax), sy1 = w2y(ay), sx2 = w2x(bx), sy2 = w2y(by);
   const mx = (sx1 + sx2) / 2, my = (sy1 + sy2) / 2;
   const isHoriz = Math.abs(bx - ax) > Math.abs(by - ay);
   const isSel = wallIdx === selWall;
-
   const text = fmtIn(len);
   const fontSize = Math.max(12, Math.min(15, scale * 3.5));
   ctx.font = `700 ${fontSize}px system-ui`;
   const tw = ctx.measureText(text).width;
   const pw = tw + 14, ph = fontSize + 10;
-
-  // Offset from wall
   const offX = isHoriz ? 0 : -(pw / 2 + 10);
   const offY = isHoriz ? -(ph / 2 + 10) : 0;
-  const px = mx + offX - pw / 2;
-  const py = my + offY - ph / 2;
-
-  // Pill background
+  const px = mx + offX - pw / 2, py = my + offY - ph / 2;
   ctx.fillStyle = isSel ? 'rgba(233,69,96,0.95)' : 'rgba(15,15,25,0.9)';
   ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 5); ctx.fill();
-
-  // Pill border
   ctx.strokeStyle = isSel ? '#e94560' : 'rgba(255,255,255,0.35)';
   ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 5); ctx.stroke();
-
-  // Text
-  ctx.fillStyle = '#fff';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, mx + offX, my + offY);
   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
 }
@@ -257,7 +266,6 @@ function drawRoom() {
   if (verts.length === 0) return;
   const n = verts.length;
 
-  // Fill
   if (closed) {
     ctx.fillStyle = 'rgba(40, 60, 90, 0.35)';
     ctx.beginPath();
@@ -266,7 +274,6 @@ function drawRoom() {
     ctx.closePath(); ctx.fill();
   }
 
-  // Walls
   const wallCount = closed ? n : n - 1;
   for (let i = 0; i < wallCount; i++) {
     const a = verts[i], b = verts[(i + 1) % n];
@@ -276,13 +283,12 @@ function drawRoom() {
     ctx.beginPath(); ctx.moveTo(w2x(a.x), w2y(a.y)); ctx.lineTo(w2x(b.x), w2y(b.y)); ctx.stroke();
   }
 
-  // Measurements
   for (let i = 0; i < wallCount; i++) {
     const a = verts[i], b = verts[(i + 1) % n];
     drawMeasurement(a.x, a.y, b.x, b.y, i);
   }
 
-  // Ghost line from drawFrom vertex
+  // Ghost line
   if (drawFrom >= 0 && !closed && ghostSnap) {
     const from = verts[drawFrom];
     ctx.strokeStyle = 'rgba(233,69,96,0.5)'; ctx.lineWidth = 1.5;
@@ -290,17 +296,14 @@ function drawRoom() {
     ctx.beginPath(); ctx.moveTo(w2x(from.x), w2y(from.y));
     ctx.lineTo(w2x(ghostSnap.x), w2y(ghostSnap.y)); ctx.stroke();
     ctx.setLineDash([]);
-
-    // Ghost length measurement
     const gl = distV(from, ghostSnap);
     if (gl > 0) {
       const gmx = (w2x(from.x) + w2x(ghostSnap.x)) / 2;
       const gmy = (w2y(from.y) + w2y(ghostSnap.y)) / 2;
       const text = fmtIn(gl);
-      const fontSize = 13;
-      ctx.font = `700 ${fontSize}px system-ui`;
+      ctx.font = '700 13px system-ui';
       const tw = ctx.measureText(text).width;
-      const pw = tw + 12, ph = fontSize + 8;
+      const pw = tw + 12, ph = 21;
       ctx.fillStyle = 'rgba(233,69,96,0.85)';
       ctx.beginPath(); ctx.roundRect(gmx - pw/2, gmy - ph - 6, pw, ph, 4); ctx.fill();
       ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -310,23 +313,22 @@ function drawRoom() {
   }
 
   // Vertices
+  const ct = (!closed && drawFrom >= 0 && n > 2) ? closeTarget() : -1;
   for (let i = 0; i < n; i++) {
     const v = verts[i], sx = w2x(v.x), sy = w2y(v.y);
     const isHov = i === hoverVert;
-    const isFirst = i === 0 && !closed && drawFrom >= 0 && n > 2;
+    const isClose = i === ct;
     const isActive = i === drawFrom && !closed;
-    const r = isHov ? 7 : isActive ? 6 : 4;
+    const r = isHov ? 7 : (isActive || isClose) ? 6 : 4;
 
-    ctx.fillStyle = isFirst ? '#e94560' : isActive ? '#4a90d9' : isHov ? '#fff' : '#ccc';
+    ctx.fillStyle = isClose ? '#e94560' : isActive ? '#4a90d9' : isHov ? '#fff' : '#ccc';
     ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
 
-    // Close indicator on first vertex
-    if (isFirst && isHov) {
+    if (isClose && isHov) {
       ctx.strokeStyle = '#e94560'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(sx, sy, 12, 0, Math.PI * 2); ctx.stroke();
     }
-    // Active vertex ring
-    if (isActive && !isFirst) {
+    if (isActive) {
       ctx.strokeStyle = '#4a90d9'; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(sx, sy, 9, 0, Math.PI * 2); ctx.stroke();
     }
@@ -367,9 +369,8 @@ function qr() { if (!rq) { rq = true; requestAnimationFrame(() => { rq = false; 
 
 // ===== HIT TESTING =====
 function hitVertex(sx, sy, thresh = 14) {
-  for (let i = 0; i < verts.length; i++) {
+  for (let i = 0; i < verts.length; i++)
     if ((w2x(verts[i].x) - sx) ** 2 + (w2y(verts[i].y) - sy) ** 2 < thresh * thresh) return i;
-  }
   return -1;
 }
 
@@ -457,10 +458,8 @@ function simulate() {
       const tx = minX + col * gw + offX, ty = minY + row * gh;
       const effW = Math.min(tw, maxX - tx), effH = Math.min(th, maxY - ty);
       if (effW <= 0 || effH <= 0 || tx + tw <= minX || ty + th <= minY) continue;
-
       const { total, inside } = roomCells(tx, ty, Math.min(tw, maxX - tx + 10), Math.min(th, maxY - ty + 10));
       if (inside === 0) continue;
-
       if (effW >= tw - TOL && effH >= th - TOL && inside === total) {
         tiles.push({ x: tx, y: ty, w: tw, h: th, type: 'full' }); fullCount++; newTiles++;
       } else {
@@ -482,7 +481,6 @@ function simulate() {
   for (let i = 0; i < bitmap.length; i++) if (bitmap[i]) roomSqIn++;
   const roomFt2 = roomSqIn / 144, tileFt2 = (newTiles * tw * th) / 144;
   const waste = tileFt2 > 0 ? Math.max(0, (tileFt2 - roomFt2) / tileFt2 * 100) : 0;
-
   $('sToBuy').textContent = newTiles;
   $('sFull').textContent = fullCount;
   $('sCut').textContent = cutCount;
@@ -529,34 +527,59 @@ $('wlIn').addEventListener('keydown', e => {
 });
 $('wlIn').addEventListener('keypress', e => e.stopPropagation());
 
-// ===== MOUSE: unified click-and-drag handling =====
+// ===== CONSTRAINED DRAG: adjust neighbors to keep 90° =====
+function beginConstrainedDrag(vi) {
+  const n = verts.length;
+  const v = verts[vi];
+  let prevO = null, nextO = null;
+  if (closed || vi > 0) {
+    const prev = verts[(vi - 1 + n) % n];
+    prevO = wallOrient(prev, v);
+  }
+  if (closed || vi < n - 1) {
+    const next = verts[(vi + 1) % n];
+    nextO = wallOrient(v, next);
+  }
+  dragWallOrients = { prev: prevO, next: nextO };
+}
+
+function applyConstrainedDrag(vi) {
+  if (!dragWallOrients) return;
+  const n = verts.length;
+  const v = verts[vi];
+
+  if (dragWallOrients.prev && (closed || vi > 0)) {
+    const prev = verts[(vi - 1 + n) % n];
+    if (dragWallOrients.prev === 'h') prev.y = v.y;
+    else prev.x = v.x;
+  }
+  if (dragWallOrients.next && (closed || vi < n - 1)) {
+    const next = verts[(vi + 1) % n];
+    if (dragWallOrients.next === 'h') next.y = v.y;
+    else next.x = v.x;
+  }
+}
+
+// ===== MOUSE EVENTS =====
 const DRAG_THRESH = 5;
 
 C.addEventListener('mousedown', e => {
   const sx = e.clientX, sy = e.clientY;
-
-  // Right/middle → pan
   if (e.button === 1 || e.button === 2) {
     panning = true; panSX = sx; panSY = sy; panOX = ox; panOY = oy;
     C.style.cursor = 'grabbing'; e.preventDefault(); return;
   }
 
   hideWallInput();
-  mdPos = { x: sx, y: sy };
-  didDrag = false;
+  mdPos = { x: sx, y: sy }; didDrag = false;
 
-  // Hit test vertex first (works in any state)
   mdVert = hitVertex(sx, sy);
-  if (mdVert >= 0) {
-    mdWall = -1;
-    return; // Decide click vs drag on mouseup
-  }
+  if (mdVert >= 0) { mdWall = -1; return; }
 
-  // Hit test wall (only relevant when we have walls)
   mdWall = hitWall(sx, sy);
-  if (mdWall >= 0) return; // Decide on mouseup
+  if (mdWall >= 0) return;
 
-  // Clicked empty space → place vertex if not closed
+  // Empty space click → place vertex
   if (!closed) {
     let wx = snap(s2wx(sx)), wy = snap(s2wy(sy));
     if (drawFrom >= 0) {
@@ -564,11 +587,21 @@ C.addEventListener('mousedown', e => {
       const c = constrainHV(wx, wy, from);
       wx = c.x; wy = c.y;
     }
-    verts.push({ x: wx, y: wy });
-    drawFrom = verts.length - 1;
-    simulated = false;
-    updateModeTag();
-    qr();
+
+    if (drawFrom === 0 && verts.length > 0) {
+      // Prepend
+      verts.unshift({ x: wx, y: wy });
+      drawFrom = 0;
+    } else if (drawFrom >= 0) {
+      // Append
+      verts.push({ x: wx, y: wy });
+      drawFrom = verts.length - 1;
+    } else {
+      // First vertex or resuming from nothing
+      verts.push({ x: wx, y: wy });
+      drawFrom = verts.length - 1;
+    }
+    simulated = false; updateModeTag(); qr();
   }
 });
 
@@ -579,40 +612,37 @@ C.addEventListener('mousemove', e => {
 
   if (panning) { ox = panOX + (sx - panSX); oy = panOY + (sy - panSY); qr(); return; }
 
-  // Dragging a vertex?
-  if (mdVert >= 0 && mdPos) {
+  // Detect drag start
+  if (mdVert >= 0 && mdPos && !didDrag) {
     const dx = sx - mdPos.x, dy = sy - mdPos.y;
     if (dx * dx + dy * dy > DRAG_THRESH * DRAG_THRESH) {
       didDrag = true;
       dragVert = mdVert;
+      if (shouldSnap()) beginConstrainedDrag(mdVert);
+      else dragWallOrients = null;
     }
   }
 
+  // Apply drag
   if (dragVert >= 0) {
-    let wx = snap(rwx), wy = snap(rwy);
-    if (ctrlDown && verts.length > 1) {
-      // Constrain relative to an adjacent vertex
-      const n = verts.length;
-      const prev = dragVert > 0 ? verts[dragVert - 1] : (closed ? verts[n - 1] : null);
-      if (prev) { const c = constrainHV(wx, wy, prev); wx = c.x; wy = c.y; }
-    }
-    verts[dragVert].x = wx; verts[dragVert].y = wy;
-    simulated = false; qr();
+    verts[dragVert].x = snap(rwx);
+    verts[dragVert].y = snap(rwy);
+    if (shouldSnap() && dragWallOrients) applyConstrainedDrag(dragVert);
+    simulated = false;
     C.style.cursor = 'grabbing';
+    qr();
     return;
   }
 
-  // Update ghost snap
+  // Ghost snap
   if (drawFrom >= 0 && !closed) {
-    let wx = snap(rwx), wy = snap(rwy);
     const from = verts[drawFrom];
-    const c = constrainHV(wx, wy, from);
-    ghostSnap = { x: c.x, y: c.y };
+    const c = constrainHV(rwx, rwy, from);
+    ghostSnap = c;
   } else {
     ghostSnap = null;
   }
 
-  // Hover detection
   hoverVert = hitVertex(sx, sy);
   hoverWall = hoverVert < 0 ? hitWall(sx, sy) : -1;
 
@@ -620,7 +650,6 @@ C.addEventListener('mousemove', e => {
   else if (hoverWall >= 0) C.style.cursor = 'pointer';
   else if (drawFrom >= 0 && !closed) C.style.cursor = 'crosshair';
   else C.style.cursor = 'default';
-
   qr();
 });
 
@@ -631,38 +660,37 @@ C.addEventListener('mouseup', e => {
     return;
   }
 
-  // Was dragging a vertex → just release
   if (dragVert >= 0) {
-    dragVert = -1; C.style.cursor = 'grab';
+    dragVert = -1; dragWallOrients = null;
+    C.style.cursor = 'grab';
     mdPos = null; mdVert = -1; mdWall = -1;
     qr(); return;
   }
 
-  const sx = e.clientX, sy = e.clientY;
-
-  // Quick click on a vertex (no drag)
+  // Quick click on vertex
   if (mdVert >= 0 && !didDrag) {
-    // Close polygon?
-    if (!closed && mdVert === 0 && verts.length > 2 && drawFrom >= 0) {
+    if (!closed && drawFrom >= 0 && verts.length > 2 && mdVert === closeTarget()) {
+      // Close the polygon
       closed = true; drawFrom = -1; ghostSnap = null;
       updateModeTag(); qr();
-    }
-    // Click on existing vertex → set as drawFrom (resume drawing from here)
-    else if (!closed && mdVert === verts.length - 1) {
+    } else if (!closed && drawFrom === -1 && isEndVertex(mdVert)) {
+      // Resume drawing from this end vertex
+      drawFrom = mdVert;
+      updateModeTag(); qr();
+    } else if (!closed && drawFrom >= 0 && isEndVertex(mdVert) && mdVert !== drawFrom) {
+      // Switch drawing end
       drawFrom = mdVert;
       updateModeTag(); qr();
     }
-    // In closed mode, just a vertex click → nothing special (drag handled above)
   }
 
-  // Quick click on a wall (no drag)
+  // Quick click on wall
   if (mdWall >= 0 && !didDrag) {
-    // Double-click → insert vertex
     if (e.detail === 2) {
       const a = verts[mdWall], b = verts[(mdWall + 1) % verts.length];
       const dx = b.x - a.x, dy = b.y - a.y, lsq = dx * dx + dy * dy;
       if (lsq > 0) {
-        const rwx = s2wx(sx), rwy = s2wy(sy);
+        const rwx = s2wx(e.clientX), rwy = s2wy(e.clientY);
         let t = Math.max(0.05, Math.min(0.95, ((rwx - a.x) * dx + (rwy - a.y) * dy) / lsq));
         verts.splice(mdWall + 1, 0, { x: snap(a.x + dx * t), y: snap(a.y + dy * t) });
         simulated = false;
@@ -697,8 +725,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Backspace' || e.key === 'Delete') {
     e.preventDefault();
     if (!closed && verts.length > 0) {
-      verts.pop();
-      drawFrom = verts.length > 0 ? verts.length - 1 : -1;
+      if (drawFrom === 0) verts.shift(); else verts.pop();
+      if (verts.length === 0) drawFrom = -1;
+      else if (drawFrom === 0) drawFrom = 0;
+      else drawFrom = verts.length - 1;
       simulated = false; updateModeTag(); qr();
     } else if (closed && hoverVert >= 0 && verts.length > 3) {
       verts.splice(hoverVert, 1);
@@ -717,9 +747,8 @@ document.addEventListener('keyup', e => { ctrlDown = e.ctrlKey || e.metaKey; });
 
 function clearAll() {
   verts = []; closed = false; drawFrom = -1; tiles = []; simulated = false;
-  selWall = -1; hoverVert = -1; hoverWall = -1; ghostSnap = null;
-  hideWallInput();
-  $('stats').style.display = 'none';
+  selWall = -1; hoverVert = -1; hoverWall = -1; ghostSnap = null; dragWallOrients = null;
+  hideWallInput(); $('stats').style.display = 'none';
   updateModeTag(); C.style.cursor = 'default'; qr();
 }
 
@@ -735,8 +764,7 @@ function resetView() {
 }
 
 window.addEventListener('resize', qr);
-updateModeTag();
-qr();
+updateModeTag(); qr();
 </script>
 </body>
 </html>
