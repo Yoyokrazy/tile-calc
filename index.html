@@ -376,8 +376,10 @@ function drawTiles(){
         const fits=srcDims.w<=t.w+0.125&&srcDims.h<=t.h+0.125;
         const canCut=srcDims.w>=t.w-0.125&&srcDims.h>=t.h-0.125;
         if(fits){
-          ctx.fillStyle='rgba(103,194,58,0.35)';ctx.fillRect(sx,sy,sw,sh);
-          ctx.strokeStyle='#67c23a';ctx.lineWidth=2.5;ctx.strokeRect(sx,sy,sw,sh);
+          // Show actual tile size within the slot
+          const pw=Math.min(srcDims.w,t.w)*scale-inset*2,ph=Math.min(srcDims.h,t.h)*scale-inset*2;
+          ctx.fillStyle='rgba(103,194,58,0.35)';ctx.fillRect(sx,sy,pw>0?pw:sw,ph>0?ph:sh);
+          ctx.strokeStyle='#67c23a';ctx.lineWidth=2.5;ctx.strokeRect(sx,sy,pw>0?pw:sw,ph>0?ph:sh);
         }else if(canCut){
           const fitW=Math.min(srcDims.w,t.w)*scale-inset*2,fitH=Math.min(srcDims.h,t.h)*scale-inset*2;
           ctx.fillStyle='rgba(230,162,60,0.35)';ctx.fillRect(sx,sy,fitW>0?fitW:sw,fitH>0?fitH:sh);
@@ -620,7 +622,7 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
         const fits=hd.w<=t.w+TOL&&hd.h<=t.h+TOL;
         const canCut=hd.w>=t.w-TOL&&hd.h>=t.h-TOL;
         if(fits){
-          t.type=heldTile.tile.type;t.cutEdges=heldTile.tile.cutEdges;t._reallocated=true;
+          t.w=hd.w;t.h=hd.h;t.type=heldTile.tile.type;t.cutEdges=heldTile.tile.cutEdges;t._reallocated=true;
           toolbox.splice(heldTile._idx,1);heldTile=null;
         }else if(canCut){
           // Cut to fit — place the needed portion, remainder to toolbox
@@ -698,7 +700,7 @@ C.addEventListener('mouseup',e=>{
       if(drop&&!(drop.ri===dragTileInfo.ri&&drop.ti===dragTileInfo.ti)){
         const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
         if(dstT.type==='unfilled'){
-          dstT.type=td.type;dstT.cutEdges=td.cutEdges;dstT._reallocated=true;
+          dstT.w=td.w;dstT.h=td.h;dstT.type=td.type;dstT.cutEdges=td.cutEdges;dstT._reallocated=true;
           srcT._origType=td.type;srcT.type='unfilled';srcT.cutEdges=null;renderStats()}}}
     dragTileInfo=null;C.style.cursor='default';mdPos=null;qr();return}
   if(dragVert>=0){dragVert=-1;dragWallOrients=null;alignGuides=[];C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
