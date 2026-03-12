@@ -94,14 +94,16 @@ button.snap-on{background:#e94560 !important}
   <h3>Tiles</h3>
   <div class="sg">
     <div class="st hl fw"><div class="v" id="sToBuy">—</div><div class="l">Tiles to buy</div></div>
-    <div class="st"><div class="v" id="sFull">—</div><div class="l">Full tiles placed</div></div>
-    <div class="st"><div class="v" id="sCut">—</div><div class="l">Cut tiles (new)</div></div>
+    <div class="st"><div class="v" id="sFull">—</div><div class="l">Full tiles</div></div>
+    <div class="st"><div class="v" id="sCut">—</div><div class="l">Cut (new tile)</div></div>
     <div class="st"><div class="v" id="sReused">—</div><div class="l">Offcuts reused</div></div>
+    <div class="st"><div class="v" id="sSplit">—</div><div class="l">Tiles split → 2 pcs</div></div>
     <div class="st"><div class="v" id="sWaste">—</div><div class="l">Waste</div></div>
   </div>
-  <h3 class="mt">Border Pieces</h3>
+  <h3 class="mt">Border &amp; Endcaps</h3>
   <div class="sg">
-    <div class="st hl fw"><div class="v" id="sEdge">—</div><div class="l">Edge strips</div></div>
+    <div class="st"><div class="v" id="sEdge">—</div><div class="l">Wall edge strips</div></div>
+    <div class="st"><div class="v" id="sCutEdge">—</div><div class="l">Cut-edge endcaps</div></div>
     <div class="st"><div class="v" id="sOutC">—</div><div class="l">Outside corners</div></div>
     <div class="st"><div class="v" id="sInC">—</div><div class="l">Inside corners</div></div>
   </div>
@@ -114,6 +116,7 @@ button.snap-on{background:#e94560 !important}
     <div class="legend-i"><div class="legend-s" style="background:#4a90d9"></div>Full tile</div>
     <div class="legend-i"><div class="legend-s" style="background:#e6a23c"></div>Cut (new tile)</div>
     <div class="legend-i"><div class="legend-s" style="background:#67c23a"></div>Reused offcut</div>
+    <div class="legend-i"><div class="legend-s" style="background:transparent;border:2px dashed #f56c6c"></div>Cut edge (needs endcap)</div>
   </div>
 </div>
 
@@ -318,9 +321,18 @@ function drawTiles(){
   if(!simulated)return;
   for(const t of tiles){
     ctx.fillStyle=t.type==='full'?'rgba(74,144,217,0.45)':t.type==='cut'?'rgba(230,162,60,0.45)':'rgba(103,194,58,0.45)';
-    ctx.fillRect(w2x(t.x),w2y(t.y),t.w*scale,t.h*scale);
+    const sx=w2x(t.x),sy=w2y(t.y),sw=t.w*scale,sh=t.h*scale;
+    ctx.fillRect(sx,sy,sw,sh);
     ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=0.5;
-    ctx.strokeRect(w2x(t.x),w2y(t.y),t.w*scale,t.h*scale)}
+    ctx.strokeRect(sx,sy,sw,sh);
+    // Draw cut edges as dashed red lines (flat side needing endcap)
+    if(t.cutEdges){const ce=t.cutEdges;
+      ctx.strokeStyle='rgba(245,108,108,0.8)';ctx.lineWidth=Math.max(1.5,scale*0.3);ctx.setLineDash([3,3]);
+      if(ce.l){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx,sy+sh);ctx.stroke()}
+      if(ce.r){ctx.beginPath();ctx.moveTo(sx+sw,sy);ctx.lineTo(sx+sw,sy+sh);ctx.stroke()}
+      if(ce.t){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+sw,sy);ctx.stroke()}
+      if(ce.b){ctx.beginPath();ctx.moveTo(sx,sy+sh);ctx.lineTo(sx+sw,sy+sh);ctx.stroke()}
+      ctx.setLineDash([])}}
 }
 
 function render(){C.width=innerWidth;C.height=innerHeight;ctx.clearRect(0,0,C.width,C.height);drawGrid();drawTiles();drawRoom()}
@@ -345,8 +357,13 @@ function simulate(){
   const bitmap=new Uint8Array(rw*rh);
   for(let y=0;y<rh;y++)for(let x=0;x<rw;x++)if(pip(minX+x+.5,minY+y+.5))bitmap[y*rw+x]=1;
 
-  tiles=[];let fullC=0,cutC=0,reusedC=0,newT=0;
-  const offcuts=[],TOL=.125;
+  tiles=[];let fullC=0,cutC=0,reusedC=0,splitC=0,newT=0;
+  let cutEdgeEndcaps=0; // flat cut edges that need endcap strips
+  const TOL=.125;
+
+  // Offcuts track dimensions + how many cut edges they carry
+  // cutEdges: number of sides that are flat (from a cut)
+  const offcuts=[]; // {w, h, cutW: bool, cutH: bool}
 
   function roomCells(rx,ry,rW,rH){let tot=0,ins=0;
     const x0=Math.max(0,Math.floor(rx-minX)),y0=Math.max(0,Math.floor(ry-minY));
@@ -354,11 +371,39 @@ function simulate(){
     for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){tot++;if(bitmap[y*rw+x])ins++}
     return{tot,ins}}
 
-  function findOC(nw,nh){for(let i=0;i<offcuts.length;i++){const o=offcuts[i];
-    if((o.w>=nw-TOL&&o.h>=nh-TOL)||(o.h>=nw-TOL&&o.w>=nh-TOL)){
-      const ow=o.w>=nw-TOL&&o.h>=nh-TOL?o.w:o.h,oh=o.w>=nw-TOL&&o.h>=nh-TOL?o.h:o.w;
-      offcuts.splice(i,1);if(ow-nw>1&&oh>1)offcuts.push({w:ow-nw,h:oh});
-      if(oh-nh>1&&nw>1)offcuts.push({w:nw,h:oh-nh});return true}}return false}
+  function findOC(nw,nh){
+    // Find offcut big enough; prefer one that minimizes further cuts
+    let bestIdx=-1,bestArea=Infinity;
+    for(let i=0;i<offcuts.length;i++){const o=offcuts[i];
+      // Normal orientation
+      if(o.w>=nw-TOL&&o.h>=nh-TOL){const a=o.w*o.h;if(a<bestArea){bestArea=a;bestIdx=i}}
+      // Rotated
+      if(o.h>=nw-TOL&&o.w>=nh-TOL){const a=o.w*o.h;if(a<bestArea){bestArea=a;bestIdx=i}}}
+    if(bestIdx<0)return null;
+    const o=offcuts[bestIdx];offcuts.splice(bestIdx,1);
+    // Determine orientation used
+    const normal=o.w>=nw-TOL&&o.h>=nh-TOL;
+    const ow=normal?o.w:o.h,oh=normal?o.h:o.w;
+    const ocW=normal?o.cutW:o.cutH,ocH=normal?o.cutH:o.cutW;
+    // This piece's cut edges: inherits from offcut, plus any new trim
+    const pieceCutR=ow-nw>TOL; // trimmed on right → new cut edge
+    const pieceCutB=oh-nh>TOL; // trimmed on bottom → new cut edge
+    const cutEdges={l:ocW,t:ocH,r:pieceCutR,b:pieceCutB};
+    // Save remaining offcuts from trimming
+    if(ow-nw>1&&oh>1)offcuts.push({w:ow-nw,h:oh,cutW:true,cutH:ocH});
+    if(oh-nh>1&&nw>1)offcuts.push({w:nw,h:oh-nh,cutW:ocW,cutH:true});
+    return cutEdges}
+
+  function cutNewTile(nw,nh){
+    // Cut from a fresh tile. Fresh tile has 0 cut edges (all interlocking tabs).
+    // After cutting: the piece we use has cut edges on trimmed sides,
+    // and the offcut(s) have cut edges on the cut side.
+    const trimR=tw-nw>TOL,trimB=th-nh>TOL;
+    const cutEdges={l:false,t:false,r:trimR,b:trimB};
+    // Save offcuts
+    if(tw-nw>1&&nh>1)offcuts.push({w:tw-nw,h:nh,cutW:true,cutH:false});
+    if(th-nh>1&&tw>1)offcuts.push({w:tw,h:th-nh,cutW:false,cutH:true});
+    return cutEdges}
 
   // Simple grid, no gap (interlocking tiles)
   const nR=Math.ceil(rh/th)+1,nC=Math.ceil(rw/tw)+1;
@@ -368,13 +413,24 @@ function simulate(){
     if(eW<=0||eH<=0||tx+tw<=minX||ty+th<=minY)continue;
     const{tot,ins}=roomCells(tx,ty,Math.min(tw,maxX-tx+10),Math.min(th,maxY-ty+10));
     if(!ins)continue;
-    if(eW>=tw-TOL&&eH>=th-TOL&&ins===tot){tiles.push({x:tx,y:ty,w:tw,h:th,type:'full'});fullC++;newT++}
-    else{const nw=Math.min(tw,eW),nh=Math.min(th,eH);
-      if(findOC(nw,nh)){tiles.push({x:tx,y:ty,w:nw,h:nh,type:'reused'});reusedC++}
-      else{tiles.push({x:tx,y:ty,w:nw,h:nh,type:'cut'});cutC++;newT++;
-        const remW=tw-nw,remH=th-nh;
-        if(remW>1&&nh>1)offcuts.push({w:remW,h:nh});
-        if(remH>1&&tw>1)offcuts.push({w:tw,h:remH})}}}}
+    const nw=Math.min(tw,eW),nh=Math.min(th,eH);
+    const isFull=nw>=tw-TOL&&nh>=th-TOL&&ins===tot;
+    if(isFull){
+      tiles.push({x:tx,y:ty,w:tw,h:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}});fullC++;newT++}
+    else{
+      const oc=findOC(nw,nh);
+      if(oc){
+        tiles.push({x:tx,y:ty,w:nw,h:nh,type:'reused',cutEdges:oc});reusedC++;
+        // Count cut edges that face interior (not against a wall — handled separately)
+        [oc.l,oc.t,oc.r,oc.b].forEach(c=>{if(c)cutEdgeEndcaps++})}
+      else{
+        const ce=cutNewTile(nw,nh);
+        tiles.push({x:tx,y:ty,w:nw,h:nh,type:'cut',cutEdges:ce});cutC++;newT++;
+        [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdgeEndcaps++})}}}
+
+  // Count splits: tiles where both the main piece and an offcut got used
+  // Approximation: every reused offcut came from a cut tile that was "split"
+  splitC=reusedC;
 
   // ===== EDGE STRIPS & CORNERS =====
   const n=verts.length;
@@ -408,10 +464,12 @@ function simulate(){
   $('sFull').textContent=fullC;
   $('sCut').textContent=cutC;
   $('sReused').textContent=reusedC;
+  $('sSplit').textContent=splitC;
   $('sWaste').textContent=waste.toFixed(1)+'%';
   $('sRoom').textContent=roomFt2.toFixed(1);
   $('sPerim').textContent=fmtFtIn(perimIn);
   $('sEdge').textContent=totalEdge;
+  $('sCutEdge').textContent=cutEdgeEndcaps;
   $('sOutC').textContent=outCorners;
   $('sInC').textContent=inCorners;
   $('stats').style.display='block';
