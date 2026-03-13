@@ -377,29 +377,6 @@ function drawTiles(){
       const step=Math.max(6,scale*3);
       for(let d=-sh;d<sw+sh;d+=step){ctx.beginPath();ctx.moveTo(sx+d,sy);ctx.lineTo(sx+d-sh,sy+sh);ctx.stroke()}
       ctx.restore();
-      // Preview for held tile or dragged tile
-      const srcDims=heldTile&&hd?hd:(dragTileInfo&&dragTileInfo.pos&&isHov?dragTileInfo.tileData:null);
-      if(srcDims&&isHov){
-        const fits=srcDims.w<=t.w+0.125&&srcDims.h<=t.h+0.125;
-        const canCut=srcDims.w>=t.w-0.125&&srcDims.h>=t.h-0.125;
-        if(fits){
-          // Show actual tile size within the slot
-          const pw=Math.min(srcDims.w,t.w)*scale-inset*2,ph=Math.min(srcDims.h,t.h)*scale-inset*2;
-          ctx.fillStyle='rgba(103,194,58,0.35)';ctx.fillRect(sx,sy,pw>0?pw:sw,ph>0?ph:sh);
-          ctx.strokeStyle='#67c23a';ctx.lineWidth=2.5;ctx.strokeRect(sx,sy,pw>0?pw:sw,ph>0?ph:sh);
-        }else if(canCut){
-          const fitW=Math.min(srcDims.w,t.w)*scale-inset*2,fitH=Math.min(srcDims.h,t.h)*scale-inset*2;
-          ctx.fillStyle='rgba(230,162,60,0.35)';ctx.fillRect(sx,sy,fitW>0?fitW:sw,fitH>0?fitH:sh);
-          ctx.strokeStyle='#e6a23c';ctx.lineWidth=2.5;ctx.strokeRect(sx,sy,fitW>0?fitW:sw,fitH>0?fitH:sh);
-          if(srcDims.w>t.w+0.125){const offW=(srcDims.w-t.w)*scale;
-            ctx.fillStyle='rgba(103,194,58,0.15)';ctx.fillRect(sx+sw,sy,offW,sh);
-            ctx.strokeStyle='rgba(103,194,58,0.5)';ctx.lineWidth=1;ctx.setLineDash([3,2]);
-            ctx.strokeRect(sx+sw,sy,offW,sh);ctx.setLineDash([])}
-          if(srcDims.h>t.h+0.125){const offH=(srcDims.h-t.h)*scale;
-            ctx.fillStyle='rgba(103,194,58,0.15)';ctx.fillRect(sx,sy+sh,sw,offH);
-            ctx.strokeStyle='rgba(103,194,58,0.5)';ctx.lineWidth=1;ctx.setLineDash([3,2]);
-            ctx.strokeRect(sx,sy+sh,sw,offH);ctx.setLineDash([])}
-        }}
       continue}
     if(t.type==='full')ctx.strokeStyle=lt?'rgba(50,110,180,0.5)':'rgba(100,170,230,0.4)';
     else if(t.type==='cut')ctx.strokeStyle=lt?'rgba(190,130,30,0.5)':'rgba(240,180,80,0.4)';
@@ -817,22 +794,13 @@ function isOverXBtn(sx,sy,t){
 C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
   if(e.button===1||e.button===2){panning=true;panSX=sx;panSY=sy;panOX=ox;panOY=oy;C.style.cursor='grabbing';e.preventDefault();return}
   const isBM=simResults&&simResults.mode==='budget';
-  // Held tile placement
+  // Held tile placement — free placement only
   if(isBM&&heldTile){
     const hd=heldDims();
     const srcTile={w:hd.w,h:hd.h,type:heldTile.tile.type,cutEdges:heldTile.tile.cutEdges};
-    // Try existing unfilled slot first
-    const ht=hitTile(sx,sy);
-    let placed=false;
-    if(ht){const t=simResults.rooms[ht.ri].tiles[ht.ti];
-      if(t.type==='unfilled'&&placeTileInSlot(srcTile,t)){
-        tryMergeAdjacent(ht.ri,ht.ti);placed=true}}
-    // Otherwise try free placement anywhere in a room
-    if(!placed){
-      const wx=s2wx(sx),wy=s2wy(sy);
-      const res=freePlaceTile(srcTile,wx,wy);
-      if(res.placed)placed=true}
-    if(placed){toolbox.splice(heldTile._idx,1);heldTile=null;
+    const wx=s2wx(sx),wy=s2wy(sy);
+    const res=freePlaceTile(srcTile,wx,wy);
+    if(res.placed){toolbox.splice(heldTile._idx,1);heldTile=null;
       heldRotated=false;updateToolbox();renderStats();qr();return}
     // Click empty/invalid = cancel
     heldTile=null;heldRotated=false;updateToolbox();qr();return}
@@ -901,25 +869,11 @@ C.addEventListener('mouseup',e=>{
   // Drop dragged tile
   if(dragTileInfo){
     if(dragTileInfo.pos){
-      const drop=hitTile(e.clientX,e.clientY);
       const td=dragTileInfo.tileData;
-      const srcT=simResults.rooms[dragTileInfo.ri].tiles[dragTileInfo.ti];
-      let placed=false;
-      // Try existing unfilled slot
-      if(drop){
-        const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
-        if(dstT.type==='unfilled'){
-          placed=placeTileInSlot(td,dstT);
-          if(placed)tryMergeAdjacent(drop.ri,drop.ti);
-        }
-      }
-      // Otherwise try free placement
-      if(!placed){
-        const wx=s2wx(e.clientX),wy=s2wy(e.clientY);
-        const res=freePlaceTile(td,wx,wy);
-        if(res.placed)placed=true;
-      }
-      if(!placed){
+      // Free placement only
+      const wx=s2wx(e.clientX),wy=s2wy(e.clientY);
+      const res=freePlaceTile(td,wx,wy);
+      if(!res.placed){
         // Can't place → send to toolbox
         toolbox.push({tile:{...td}});consolidateToolbox();
       }
