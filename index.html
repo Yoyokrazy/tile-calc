@@ -655,6 +655,58 @@ function clearSlot(t) {
   t.cutEdges = null;
 }
 
+// After placing a tile, check if it + an adjacent tile form a full square → merge
+function tryMergeAdjacent(ri, ti) {
+  const tw = parseFloat($('tileW').value) || 24, th = parseFloat($('tileH').value) || 24;
+  const TOL = 0.5;
+  const tiles = simResults.rooms[ri].tiles;
+  const a = tiles[ti];
+  if (a.type === 'unfilled' || a.type === 'removed') return;
+  // Look for neighbor tiles that share an edge
+  for (let j = 0; j < tiles.length; j++) {
+    if (j === ti) continue;
+    const b = tiles[j];
+    if (b.type === 'unfilled' || b.type === 'removed') continue;
+    // Check right neighbor: a.x + a.w ≈ b.x, same y, same height, widths sum to tw
+    if (Math.abs((a.x + a.w) - b.x) < TOL && Math.abs(a.y - b.y) < TOL &&
+        Math.abs(a.h - b.h) < TOL && Math.abs(a.w + b.w - tw) < TOL) {
+      // Merge into a at the leftmost position
+      a.x = Math.min(a.x, b.x); a.w = tw; a.h = th; a.type = 'full';
+      a.cutEdges = {l: false, t: false, r: false, b: false};
+      a._slotW = tw; a._slotH = th;
+      clearSlot(b); b.type = 'removed'; // hide the merged slot
+      return;
+    }
+    // Check left neighbor: b.x + b.w ≈ a.x
+    if (Math.abs((b.x + b.w) - a.x) < TOL && Math.abs(a.y - b.y) < TOL &&
+        Math.abs(a.h - b.h) < TOL && Math.abs(a.w + b.w - tw) < TOL) {
+      a.x = Math.min(a.x, b.x); a.w = tw; a.h = th; a.type = 'full';
+      a.cutEdges = {l: false, t: false, r: false, b: false};
+      a._slotW = tw; a._slotH = th;
+      clearSlot(b); b.type = 'removed';
+      return;
+    }
+    // Check bottom neighbor: a.y + a.h ≈ b.y, same x, same width, heights sum to th
+    if (Math.abs((a.y + a.h) - b.y) < TOL && Math.abs(a.x - b.x) < TOL &&
+        Math.abs(a.w - b.w) < TOL && Math.abs(a.h + b.h - th) < TOL) {
+      a.y = Math.min(a.y, b.y); a.w = tw; a.h = th; a.type = 'full';
+      a.cutEdges = {l: false, t: false, r: false, b: false};
+      a._slotW = tw; a._slotH = th;
+      clearSlot(b); b.type = 'removed';
+      return;
+    }
+    // Check top neighbor
+    if (Math.abs((b.y + b.h) - a.y) < TOL && Math.abs(a.x - b.x) < TOL &&
+        Math.abs(a.w - b.w) < TOL && Math.abs(a.h + b.h - th) < TOL) {
+      a.y = Math.min(a.y, b.y); a.w = tw; a.h = th; a.type = 'full';
+      a.cutEdges = {l: false, t: false, r: false, b: false};
+      a._slotW = tw; a._slotH = th;
+      clearSlot(b); b.type = 'removed';
+      return;
+    }
+  }
+}
+
 // ===== MOUSE =====
 const DT=5;
 function isOverXBtn(sx,sy,t){
@@ -676,6 +728,7 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
         const srcTile={w:hd.w,h:hd.h,type:heldTile.tile.type,cutEdges:heldTile.tile.cutEdges};
         if(placeTileInSlot(srcTile,t)){
           toolbox.splice(heldTile._idx,1);heldTile=null;
+          tryMergeAdjacent(ht.ri,ht.ti);
           heldRotated=false;updateToolbox();renderStats();qr();return}}}
     heldTile=null;heldRotated=false;updateToolbox();qr();return}
   // Budget mode: X button or start drag
@@ -750,6 +803,7 @@ C.addEventListener('mouseup',e=>{
         srcT.type=td.type;srcT.w=td.w;srcT.h=td.h;srcT.cutEdges=td.cutEdges;
       }else if(placed){
         clearSlot(srcT);
+        tryMergeAdjacent(drop.ri,drop.ti);
       }else{
         // Dropped on nothing or incompatible slot → send to toolbox
         toolbox.push({tile:{...td}});clearSlot(srcT);consolidateToolbox();
