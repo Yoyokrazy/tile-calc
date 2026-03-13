@@ -70,10 +70,10 @@
     "arranged": true,
     "totals": {
       "full": 27,
-      "cut": 7,
+      "cut": 8,
       "newT": 30,
       "unfilled": 18,
-      "cutEdgeEndcaps": 9,
+      "cutEdgeEndcaps": 11,
       "edgeStrips": 44,
       "outCorners": 9,
       "inCorners": 1,
@@ -400,13 +400,13 @@
           {
             "x": 132,
             "y": 108,
-            "w": 24,
+            "w": 12,
             "h": 12,
             "type": "cut",
             "cutEdges": {
               "l": false,
               "t": true,
-              "r": false,
+              "r": true,
               "b": false
             }
           },
@@ -448,14 +448,27 @@
               "r": false,
               "b": true
             }
+          },
+          {
+            "x": 144,
+            "y": 108,
+            "w": 24,
+            "h": 6,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": true,
+              "r": false,
+              "b": false
+            }
           }
         ],
         "stats": {
           "full": 21,
-          "cut": 7,
+          "cut": 8,
           "newT": 24,
           "unfilled": 0,
-          "cutEdgeEndcaps": 9,
+          "cutEdgeEndcaps": 11,
           "edgeStrips": 24,
           "outCorners": 5,
           "inCorners": 1,
@@ -686,5 +699,5 @@
     ],
     "toolbox": []
   },
-  "savedAt": "2026-03-13T20:05:16.944Z"
+  "savedAt": "2026-03-13T21:23:58.964Z"
 }

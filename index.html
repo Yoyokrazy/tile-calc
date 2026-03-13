@@ -575,6 +575,33 @@ function simRoom(rm,tw,th,budget,offcuts){
       }}}}
 
   // Pass 2: fill L-corner gaps at increment steps
+  // Use coverage-aware extent check to avoid overlaps
+  function uncoveredExtent(tx,ty,maxW,maxH){
+    const x0=Math.floor(tx-minX),y0=Math.floor(ty-minY);
+    if(x0<0||y0<0||x0>=rw||y0>=rh||!bitmap[y0*rw+x0]||covered[y0*rw+x0])return{w:0,h:0};
+    let ew=0;
+    for(let dx=0;dx<maxW;dx++){
+      const ix=x0+dx;
+      if(ix>=rw||!bitmap[y0*rw+ix]||covered[y0*rw+ix])break;
+      ew=dx+1;
+    }
+    if(ew===0)return{w:0,h:0};
+    let eh=1;
+    for(let dy=1;dy<maxH;dy++){
+      const iy=y0+dy;
+      if(iy>=rh)break;
+      let rowW=0;
+      for(let dx=0;dx<ew;dx++){
+        if(!bitmap[iy*rw+(x0+dx)]||covered[iy*rw+(x0+dx)])break;
+        rowW=dx+1;
+      }
+      if(rowW===0)break;
+      ew=rowW;
+      eh=dy+1;
+    }
+    return{w:ew,h:eh};
+  }
+
   const nRI=Math.ceil(rh/inc)+1,nCI=Math.ceil(rw/inc)+1;
   for(let row=0;row<nRI;row++){for(let col=0;col<nCI;col++){
     const tx=minX+col*inc,ty=minY+row*inc;
@@ -582,17 +609,13 @@ function simRoom(rm,tw,th,budget,offcuts){
     if(isCovered(tx,ty))continue;
     const ix=Math.floor(tx-minX),iy=Math.floor(ty-minY);
     if(ix<0||ix>=rw||iy<0||iy>=rh||!bitmap[iy*rw+ix])continue;
-    // Room pixel not covered — find extent and place a cut tile
-    const ext=roomExtent(tx,ty,tw,th);
+    const ext=uncoveredExtent(tx,ty,tw,th);
     let eW=ext.w,eH=ext.h;
     if(eW<=0||eH<=0)continue;
     if(eW<tw-TOL) eW=Math.floor(eW/inc)*inc;
     if(eH<th-TOL) eH=Math.floor(eH/inc)*inc;
     if(eW<1||eH<1)continue;
-    // Clamp to not exceed tile size
     eW=Math.min(eW,tw);eH=Math.min(eH,th);
-    const{tot:_t,ins:_i}=roomCells(tx,ty,eW,eH);
-    if(!_i)continue;
     if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'unfilled'});unfilledC++;markCovered(tx,ty,eW,eH);continue}
     const oc2=findOC(eW,eH);
     if(oc2){tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'cut',cutEdges:oc2});cutC++;markCovered(tx,ty,eW,eH);
@@ -1360,11 +1383,29 @@ function saveFile(){
       mode:simResults.mode,
       arranged:!!simResults.arranged,
       totals:simResults.totals,
-      rooms:simResults.rooms.map(rr=>({
-        tiles:rr.tiles.map(t=>({x:t.x,y:t.y,w:t.w,h:t.h,type:t.type,cutEdges:t.cutEdges})),
-        stats:rr.stats
-      })),
-      toolbox:toolbox.map(tb=>({tile:{...tb.tile}}))
+      rooms:simResults.rooms.map((rr,ri)=>{
+        const rm=rooms[ri],vs=rm?rm.verts:[];
+        let rmMinX=Infinity,rmMinY=Infinity,rmMaxX=-Infinity,rmMaxY=-Infinity;
+        for(const v of vs){rmMinX=Math.min(rmMinX,v.x);rmMinY=Math.min(rmMinY,v.y);rmMaxX=Math.max(rmMaxX,v.x);rmMaxY=Math.max(rmMaxY,v.y)}
+        const placed=rr.tiles.filter(t=>t.type!=='removed'&&t.type!=='unfilled');
+        // Overlap detection
+        const overlaps=[];
+        for(let i=0;i<placed.length;i++)for(let j=i+1;j<placed.length;j++){
+          const a=placed[i],b=placed[j];
+          if(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y)
+            overlaps.push({a:`${a.x},${a.y} ${a.w}x${a.h}`,b:`${b.x},${b.y} ${b.w}x${b.h}`});
+        }
+        return{
+          roomName:rm?rm.name:'',
+          roomBbox:{x:rmMinX,y:rmMinY,w:rmMaxX-rmMinX,h:rmMaxY-rmMinY},
+          tiles:rr.tiles.map(t=>({x:t.x,y:t.y,w:t.w,h:t.h,type:t.type,cutEdges:t.cutEdges,area:t.w*t.h})),
+          stats:rr.stats,
+          placedCount:placed.length,
+          unfilledCount:rr.tiles.filter(t=>t.type==='unfilled').length,
+          overlaps:overlaps.length?overlaps:undefined
+        }}),
+      toolbox:toolbox.map(tb=>({tile:{...tb.tile},area:tb.tile.w*tb.tile.h})),
+      toolboxCount:toolbox.length
     }:null,
     savedAt:new Date().toISOString()
   };
