@@ -1,0 +1,24 @@
+{
+  "name": "tile-calc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yoyokrazy/tile-calc.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Yoyokrazy/tile-calc/issues"
+  },
+  "homepage": "https://github.com/Yoyokrazy/tile-calc#readme",
+  "devDependencies": {
+    "vitest": "^4.1.0"
+  }
+}
