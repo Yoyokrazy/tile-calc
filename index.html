@@ -1172,6 +1172,9 @@ function clearToolbox(){
 
 // ===== SAVE/LOAD =====
 function saveFile(){
+  // Check if there's anything worth saving (any room with vertices)
+  const hasContent=rooms.some(r=>r.verts.length>0);
+  if(!hasContent){alert('Nothing to save — draw a room first.');return}
   const data={
     version:1,
     rooms:rooms.map(r=>({name:r.name,verts:r.verts.map(v=>({x:v.x,y:v.y})),closed:r.closed,priority:r.priority,color:r.color})),
@@ -1181,11 +1184,21 @@ function saveFile(){
   };
   const json=JSON.stringify(data,null,2);
   const blob=new Blob([json],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='tilecalc-project.tilecalc';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Try File System Access API for save-as dialog, fall back to download
+  if(window.showSaveFilePicker){
+    window.showSaveFilePicker({suggestedName:'tilecalc-project.tilecalc',
+      types:[{description:'Tile Calc Project',accept:{'application/json':['.tilecalc','.json']}}]
+    }).then(async handle=>{
+      const writable=await handle.createWritable();
+      await writable.write(blob);await writable.close();
+    }).catch(()=>{}); // user cancelled
+  }else{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='tilecalc-project.tilecalc';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 }
 
 function loadFile(input){
