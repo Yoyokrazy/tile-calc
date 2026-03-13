@@ -403,39 +403,46 @@ function drawTiles(){
     const wx=s2wx(mouseScreen.x),wy=s2wy(mouseScreen.y);
     const prev=getPlacePreview(wx,wy,hd.w,hd.h);
     if(prev){
-      // Show snapped position
-      const spx=w2x(prev.x),spy=w2y(prev.y),spw=hd.w*scale,sph=hd.h*scale;
+      const spx=w2x(prev.x),spy=w2y(prev.y),spw=prev.w*scale,sph=prev.h*scale;
       ctx.strokeStyle=prev.valid?'#67c23a':'rgba(255,80,80,0.6)';ctx.lineWidth=3;ctx.globalAlpha=0.7;
       ctx.strokeRect(spx,spy,spw,sph);
       ctx.fillStyle=prev.valid?'rgba(103,194,58,0.2)':'rgba(255,80,80,0.1)';ctx.fillRect(spx,spy,spw,sph);
       ctx.globalAlpha=1;
+      // Show offcut portion if clipped
+      if(prev.clipped&&prev.valid){
+        const fullX=w2x(prev.x-(prev.x>prev.x?0:0)),fullY=w2y(prev.y);
+        // Show the full piece outline faintly
+        ctx.strokeStyle='rgba(230,162,60,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+        ctx.strokeRect(w2x(prev.x),w2y(prev.y),hd.w*scale,hd.h*scale);ctx.setLineDash([]);
+      }
       ctx.fillStyle=prev.valid?'#67c23a':'#f56c6c';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(`${hd.w}"×${hd.h}"`,spx+spw/2,spy+sph/2);
+      const label=prev.clipped?`${Math.round(prev.w)}"×${Math.round(prev.h)}" (cut)`:`${hd.w}"×${hd.h}"`;
+      ctx.fillText(label,spx+spw/2,spy+sph/2);
       ctx.textAlign='start';ctx.textBaseline='alphabetic';
     }else{
-      // Not over any room — show at cursor
       const pw=hd.w*scale,ph=hd.h*scale;
       const px=mouseScreen.x-pw/2,py=mouseScreen.y-ph/2;
       ctx.strokeStyle='rgba(255,80,80,0.4)';ctx.lineWidth=2;ctx.globalAlpha=0.5;
       ctx.strokeRect(px,py,pw,ph);ctx.globalAlpha=1;
     }
   }
-  // Drag tile preview snapped to grid
+  // Drag tile preview
   if(dragTileInfo&&dragTileInfo.pos){
     const td=dragTileInfo.tileData;
     const wx=s2wx(mouseScreen.x),wy=s2wy(mouseScreen.y);
     const prev=getPlacePreview(wx,wy,td.w,td.h);
-    // Ghost at cursor
     ctx.globalAlpha=0.4;ctx.fillStyle='rgba(74,144,217,0.5)';
     ctx.fillRect(dragTileInfo.pos.x,dragTileInfo.pos.y,td.w*scale,td.h*scale);
     ctx.globalAlpha=1;
-    // Snapped preview
     if(prev){
-      const spx=w2x(prev.x),spy=w2y(prev.y),spw=td.w*scale,sph=td.h*scale;
+      const spx=w2x(prev.x),spy=w2y(prev.y),spw=prev.w*scale,sph=prev.h*scale;
       ctx.strokeStyle=prev.valid?'#67c23a':'rgba(255,80,80,0.6)';ctx.lineWidth=2.5;
       ctx.strokeRect(spx,spy,spw,sph);
       ctx.fillStyle=prev.valid?'rgba(103,194,58,0.15)':'rgba(255,80,80,0.08)';
       ctx.fillRect(spx,spy,spw,sph);
+      if(prev.clipped&&prev.valid){
+        ctx.strokeStyle='rgba(230,162,60,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+        ctx.strokeRect(w2x(prev.x),w2y(prev.y),td.w*scale,td.h*scale);ctx.setLineDash([])}
     }
   }
   // Room outlines
@@ -746,29 +753,63 @@ function findRoomAt(wx,wy){
 }
 
 // Try to freely place a tile piece at a world position
-// Returns {ri, placed:true} or {placed:false}
+// Auto-clips to room boundary, offcuts go to toolbox
+// Removes unfilled slots that get covered
 function freePlaceTile(srcTile, wx, wy) {
   const tw=parseFloat($('tileW').value)||24, th=parseFloat($('tileH').value)||24;
-  // Find which room this point is in
   const ri=findRoomAt(wx,wy);
   if(ri<0)return{placed:false};
-  // Snap to grid
   const g=snapToTileGrid(wx-srcTile.w/2, wy-srcTile.h/2, ri);
-  const px=g.x, py=g.y;
-  // Check room coverage
+  let px=g.x, py=g.y;
+  // Check some part is in room
   const coverage=rectInRoom(ri, px, py, srcTile.w, srcTile.h);
   if(coverage<0.1)return{placed:false};
-  // Check overlap
+  // Check overlap with filled tiles
   if(overlapsAny(ri, px, py, srcTile.w, srcTile.h, -1))return{placed:false};
-  // Place it
-  const newTile={x:px, y:py, w:srcTile.w, h:srcTile.h,
-    _slotW:srcTile.w, _slotH:srcTile.h,
-    type:srcTile.type||'cut',
-    cutEdges:srcTile.cutEdges?{...srcTile.cutEdges}:{l:false,t:false,r:false,b:false},
-    _reallocated:true};
-  simResults.rooms[ri].tiles.push(newTile);
-  // Try merge with neighbor
-  tryMergeAdjacent(ri, simResults.rooms[ri].tiles.length-1);
+  // Clip to room bounding box
+  const vs=rooms[ri].verts;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const v of vs){minX=Math.min(minX,v.x);minY=Math.min(minY,v.y);maxX=Math.max(maxX,v.x);maxY=Math.max(maxY,v.y)}
+  const TOL=0.125;
+  const clipR=Math.min(px+srcTile.w, maxX), clipB=Math.min(py+srcTile.h, maxY);
+  const clipL=Math.max(px, minX), clipT=Math.max(py, minY);
+  const placedW=clipR-clipL, placedH=clipB-clipT;
+  if(placedW<1||placedH<1)return{placed:false};
+  // Determine cut edges
+  const cutL=clipL>px+TOL, cutT=clipT>py+TOL, cutR=clipR<px+srcTile.w-TOL, cutB=clipB<py+srcTile.h-TOL;
+  const ce={
+    l:cutL||( srcTile.cutEdges?srcTile.cutEdges.l:false),
+    t:cutT||(srcTile.cutEdges?srcTile.cutEdges.t:false),
+    r:cutR||(srcTile.cutEdges?srcTile.cutEdges.r:false),
+    b:cutB||(srcTile.cutEdges?srcTile.cutEdges.b:false)
+  };
+  const isCut=cutL||cutT||cutR||cutB;
+  // Create offcuts for trimmed portions
+  const remR=px+srcTile.w-clipR, remB=py+srcTile.h-clipB;
+  if(remR>1&&placedH>1)
+    toolbox.push({tile:{w:remR,h:placedH,type:'cut',cutEdges:{l:true,t:srcTile.cutEdges?srcTile.cutEdges.t:false,r:srcTile.cutEdges?srcTile.cutEdges.r:false,b:srcTile.cutEdges?srcTile.cutEdges.b:false}}});
+  if(remB>1&&srcTile.w>1)
+    toolbox.push({tile:{w:srcTile.w,h:remB,type:'cut',cutEdges:{l:srcTile.cutEdges?srcTile.cutEdges.l:false,t:true,r:srcTile.cutEdges?srcTile.cutEdges.r:false,b:srcTile.cutEdges?srcTile.cutEdges.b:false}}});
+  if(remR>1||remB>1)consolidateToolbox();
+  // Place the clipped tile
+  const newTile={x:clipL, y:clipT, w:placedW, h:placedH,
+    _slotW:placedW, _slotH:placedH,
+    type:isCut?'cut':(srcTile.type||'full'),
+    cutEdges:ce, _reallocated:true};
+  const tiles=simResults.rooms[ri].tiles;
+  tiles.push(newTile);
+  // Remove any unfilled slots that this tile now covers
+  for(let i=tiles.length-2;i>=0;i--){
+    const t=tiles[i];
+    if(t.type!=='unfilled')continue;
+    // Check if our new tile fully covers this unfilled slot
+    if(clipL<=t.x+TOL&&clipT<=t.y+TOL&&clipR>=t.x+t.w-TOL&&clipB>=t.y+t.h-TOL){
+      t.type='removed'}
+    // Partially covered unfilled → also remove (simplification — avoids visual glitches)
+    else if(clipL<t.x+t.w-TOL&&clipR>t.x+TOL&&clipT<t.y+t.h-TOL&&clipB>t.y+TOL){
+      t.type='removed'}
+  }
+  tryMergeAdjacent(ri, tiles.length-1);
   return{placed:true, ri};
 }
 
@@ -779,7 +820,15 @@ function getPlacePreview(wx, wy, pieceW, pieceH) {
   const g=snapToTileGrid(wx-pieceW/2, wy-pieceH/2, ri);
   const coverage=rectInRoom(ri, g.x, g.y, pieceW, pieceH);
   const overlaps=overlapsAny(ri, g.x, g.y, pieceW, pieceH, -1);
-  return{x:g.x, y:g.y, ri, valid:coverage>=0.1&&!overlaps, coverage};
+  // Compute clipped size
+  const vs=rooms[ri].verts;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const v of vs){minX=Math.min(minX,v.x);minY=Math.min(minY,v.y);maxX=Math.max(maxX,v.x);maxY=Math.max(maxY,v.y)}
+  const cx=Math.max(g.x,minX),cy=Math.max(g.y,minY);
+  const cw=Math.min(g.x+pieceW,maxX)-cx,ch=Math.min(g.y+pieceH,maxY)-cy;
+  const clipped=cw<pieceW-0.125||ch<pieceH-0.125;
+  return{x:cx, y:cy, w:Math.max(0,cw), h:Math.max(0,ch), fullW:pieceW, fullH:pieceH,
+    ri, valid:coverage>=0.1&&!overlaps&&cw>0&&ch>0, clipped};
 }
 
 // ===== MOUSE =====
