@@ -69,11 +69,11 @@
     "mode": "budget",
     "arranged": true,
     "totals": {
-      "full": 26,
-      "cut": 8,
+      "full": 27,
+      "cut": 7,
       "newT": 30,
       "unfilled": 18,
-      "cutEdgeEndcaps": 8,
+      "cutEdgeEndcaps": 9,
       "edgeStrips": 44,
       "outCorners": 9,
       "inCorners": 1,
@@ -414,7 +414,7 @@
             "x": 156,
             "y": 108,
             "w": 24,
-            "h": 12,
+            "h": 6,
             "type": "cut",
             "cutEdges": {
               "l": false,
@@ -427,24 +427,24 @@
             "x": 180,
             "y": 108,
             "w": 24,
-            "h": 12,
+            "h": 6,
             "type": "cut",
             "cutEdges": {
               "l": false,
               "t": true,
               "r": false,
-              "b": false
+              "b": true
             }
           },
           {
             "x": 204,
             "y": 108,
             "w": 24,
-            "h": 12,
+            "h": 6,
             "type": "cut",
             "cutEdges": {
               "l": false,
-              "t": false,
+              "t": true,
               "r": false,
               "b": true
             }
@@ -453,9 +453,9 @@
         "stats": {
           "full": 21,
           "cut": 7,
-          "newT": 25,
+          "newT": 24,
           "unfilled": 0,
-          "cutEdgeEndcaps": 7,
+          "cutEdgeEndcaps": 9,
           "edgeStrips": 24,
           "outCorners": 5,
           "inCorners": 1,
@@ -535,7 +535,13 @@
             "y": 144,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
           },
           {
             "x": 60,
@@ -626,13 +632,7 @@
             "y": 216,
             "w": 24,
             "h": 12,
-            "type": "cut",
-            "cutEdges": {
-              "l": false,
-              "t": true,
-              "r": false,
-              "b": false
-            }
+            "type": "unfilled"
           },
           {
             "x": 84,
@@ -671,11 +671,11 @@
           }
         ],
         "stats": {
-          "full": 5,
-          "cut": 1,
-          "newT": 5,
+          "full": 6,
+          "cut": 0,
+          "newT": 6,
           "unfilled": 18,
-          "cutEdgeEndcaps": 1,
+          "cutEdgeEndcaps": 0,
           "edgeStrips": 20,
           "outCorners": 4,
           "inCorners": 0,
@@ -686,5 +686,5 @@
     ],
     "toolbox": []
   },
-  "savedAt": "2026-03-13T19:34:22.163Z"
+  "savedAt": "2026-03-13T20:05:16.944Z"
 }

@@ -501,47 +501,59 @@ function simRoom(rm,tw,th,budget,offcuts){
   function findOC(nw,nh){let bestI=-1,bestA=Infinity;for(let i=0;i<offcuts.length;i++){const o=offcuts[i];if((o.w>=nw-TOL&&o.h>=nh-TOL)||(o.h>=nw-TOL&&o.w>=nh-TOL)){const a=o.w*o.h;if(a<bestA){bestA=a;bestI=i}}}if(bestI<0)return null;const o=offcuts[bestI];offcuts.splice(bestI,1);const norm=o.w>=nw-TOL&&o.h>=nh-TOL;const ow=norm?o.w:o.h,oh=norm?o.h:o.w,ocW=norm?o.cutW:o.cutH,ocH=norm?o.cutH:o.cutW;const pR=ow-nw>TOL,pB=oh-nh>TOL;const ce={l:ocW,t:ocH,r:pR,b:pB};if(ow-nw>1&&oh>1)offcuts.push({w:ow-nw,h:oh,cutW:true,cutH:ocH});if(oh-nh>1&&nw>1)offcuts.push({w:nw,h:oh-nh,cutW:ocW,cutH:true});return ce}
   function cutNew(nw,nh){const tR=tw-nw>TOL,tB=th-nh>TOL;const ce={l:false,t:false,r:tR,b:tB};if(tw-nw>1&&nh>1)offcuts.push({w:tw-nw,h:nh,cutW:true,cutH:false});if(th-nh>1&&tw>1)offcuts.push({w:tw,h:th-nh,cutW:false,cutH:true});return ce}
 
-  // Compute actual room extent from a tile position by scanning bitmap
+  // Compute actual room extent: find largest rectangle at (tx,ty) where ALL pixels are room
   function roomExtent(tx,ty,maxW,maxH){
-    // Scan right: how many contiguous columns have at least one room pixel?
+    const x0=Math.floor(tx-minX),y0=Math.floor(ty-minY);
+    if(x0<0||y0<0||x0>=rw||y0>=rh||!bitmap[y0*rw+x0])return{w:0,h:0};
+    // Find max width of the first row
     let ew=0;
     for(let dx=0;dx<maxW;dx++){
-      const ix=Math.floor(tx+dx-minX);
-      if(ix<0||ix>=rw)break;
-      let hasRoom=false;
-      for(let dy=0;dy<Math.min(maxH,th);dy++){
-        const iy=Math.floor(ty+dy-minY);
-        if(iy>=0&&iy<rh&&bitmap[iy*rw+ix])hasRoom=true;
-      }
-      if(!hasRoom)break;
+      const ix=x0+dx;
+      if(ix>=rw||!bitmap[y0*rw+ix])break;
       ew=dx+1;
     }
-    // Scan down: how many contiguous rows have at least one room pixel?
-    let eh=0;
-    for(let dy=0;dy<maxH;dy++){
-      const iy=Math.floor(ty+dy-minY);
-      if(iy<0||iy>=rh)break;
-      let hasRoom=false;
-      for(let dx=0;dx<Math.min(ew,tw);dx++){
-        const ix=Math.floor(tx+dx-minX);
-        if(ix>=0&&ix<rw&&bitmap[iy*rw+ix])hasRoom=true;
+    if(ew===0)return{w:0,h:0};
+    // Expand downward, shrinking width as needed to keep all pixels in room
+    let eh=1;
+    for(let dy=1;dy<maxH;dy++){
+      const iy=y0+dy;
+      if(iy>=rh)break;
+      // Check how far right this row extends
+      let rowW=0;
+      for(let dx=0;dx<ew;dx++){
+        if(!bitmap[iy*rw+(x0+dx)])break;
+        rowW=dx+1;
       }
-      if(!hasRoom)break;
+      if(rowW===0)break;
+      ew=rowW; // shrink to narrowest row
       eh=dy+1;
     }
     return{w:ew,h:eh};
   }
 
   const inc=parseFloat($('incr').value)||12;
+  // Use a coverage bitmap to track what's been tiled (separate from room bitmap)
+  const covered=new Uint8Array(rw*rh);
+
+  function markCovered(tx,ty,tw2,th2){
+    const x0=Math.max(0,Math.floor(tx-minX)),y0=Math.max(0,Math.floor(ty-minY));
+    const x1=Math.min(rw,Math.ceil(tx+tw2-minX)),y1=Math.min(rh,Math.ceil(ty+th2-minY));
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)covered[y*rw+x]=1;
+  }
+  function isCovered(tx,ty){
+    const ix=Math.floor(tx-minX),iy=Math.floor(ty-minY);
+    return ix>=0&&ix<rw&&iy>=0&&iy<rh&&covered[iy*rw+ix];
+  }
+
+  // Pass 1: place full tiles at tile-step intervals
   const nR=Math.ceil(rh/th)+1,nC=Math.ceil(rw/tw)+1;
   for(let row=0;row<nR;row++){for(let col=0;col<nC;col++){
     const tx=minX+col*tw,ty=minY+row*th;
     if(tx>=maxX||ty>=maxY)continue;
-    // Use bitmap to find actual room extent at this position
+    if(isCovered(tx,ty))continue;
     const ext=roomExtent(tx,ty,tw,th);
     let eW=ext.w,eH=ext.h;
     if(eW<=0||eH<=0)continue;
-    // Snap cuts to increment
     if(eW<tw-TOL) eW=Math.floor(eW/inc)*inc;
     if(eH<th-TOL) eH=Math.floor(eH/inc)*inc;
     if(eW<1||eH<1)continue;
@@ -550,17 +562,46 @@ function simRoom(rm,tw,th,budget,offcuts){
     const nw=eW,nh=eH;
     const isFull=nw>=tw-TOL&&nh>=th-TOL&&ins===tot;
     if(isFull){
-      if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:tw,h:th,_slotW:tw,_slotH:th,type:'unfilled'});unfilledC++;continue}
-      tiles.push({x:tx,y:ty,w:tw,h:th,_slotW:tw,_slotH:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}});fullC++;newT++;
+      if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:tw,h:th,_slotW:tw,_slotH:th,type:'unfilled'});unfilledC++;markCovered(tx,ty,tw,th);continue}
+      tiles.push({x:tx,y:ty,w:tw,h:th,_slotW:tw,_slotH:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}});fullC++;newT++;markCovered(tx,ty,tw,th);
     }else{
       const oc=findOC(nw,nh);
       if(oc){tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'cut',cutEdges:oc});cutC++;
-        [oc.l,oc.t,oc.r,oc.b].forEach(c=>{if(c)cutEdgeEndcaps++});
+        [oc.l,oc.t,oc.r,oc.b].forEach(c=>{if(c)cutEdgeEndcaps++});markCovered(tx,ty,nw,nh);
       }else{
-        if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'unfilled'});unfilledC++;continue}
-        const ce=cutNew(nw,nh);tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'cut',cutEdges:ce});cutC++;newT++;
+        if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'unfilled'});unfilledC++;markCovered(tx,ty,nw,nh);continue}
+        const ce=cutNew(nw,nh);tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'cut',cutEdges:ce});cutC++;newT++;markCovered(tx,ty,nw,nh);
         [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdgeEndcaps++});
       }}}}
+
+  // Pass 2: fill L-corner gaps at increment steps
+  const nRI=Math.ceil(rh/inc)+1,nCI=Math.ceil(rw/inc)+1;
+  for(let row=0;row<nRI;row++){for(let col=0;col<nCI;col++){
+    const tx=minX+col*inc,ty=minY+row*inc;
+    if(tx>=maxX||ty>=maxY)continue;
+    if(isCovered(tx,ty))continue;
+    const ix=Math.floor(tx-minX),iy=Math.floor(ty-minY);
+    if(ix<0||ix>=rw||iy<0||iy>=rh||!bitmap[iy*rw+ix])continue;
+    // Room pixel not covered — find extent and place a cut tile
+    const ext=roomExtent(tx,ty,tw,th);
+    let eW=ext.w,eH=ext.h;
+    if(eW<=0||eH<=0)continue;
+    if(eW<tw-TOL) eW=Math.floor(eW/inc)*inc;
+    if(eH<th-TOL) eH=Math.floor(eH/inc)*inc;
+    if(eW<1||eH<1)continue;
+    // Clamp to not exceed tile size
+    eW=Math.min(eW,tw);eH=Math.min(eH,th);
+    const{tot:_t,ins:_i}=roomCells(tx,ty,eW,eH);
+    if(!_i)continue;
+    if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'unfilled'});unfilledC++;markCovered(tx,ty,eW,eH);continue}
+    const oc2=findOC(eW,eH);
+    if(oc2){tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'cut',cutEdges:oc2});cutC++;markCovered(tx,ty,eW,eH);
+      [oc2.l,oc2.t,oc2.r,oc2.b].forEach(c=>{if(c)cutEdgeEndcaps++});
+    }else{
+      const ce2=cutNew(eW,eH);tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'cut',cutEdges:ce2});cutC++;newT++;markCovered(tx,ty,eW,eH);
+      [ce2.l,ce2.t,ce2.r,ce2.b].forEach(c=>{if(c)cutEdgeEndcaps++});
+    }
+  }}
   // Edge strips & corners
   const n=vs.length;let totalEdge=0,outC=0,inC=0,perimIn=0;
   let sa2=0;for(let i=0;i<n;i++){const a=vs[i],b=vs[(i+1)%n];sa2+=a.x*b.y-b.x*a.y}

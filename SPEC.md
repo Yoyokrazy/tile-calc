@@ -21,7 +21,21 @@ A tile piece has:
 User-configurable snap increment (default 12"). Controls:
 - Grid snapping for all tile placement
 - Cut dimensions when clipping to room boundary (snaps DOWN to increment)
-- Changing increment auto-recomputes simulation
+- Auto button: analyzes room dimensions to find optimal increment
+- Changing increment requires clicking Arrange to re-tile
+
+### Simulation Algorithm (Two-Pass)
+**Pass 1**: Place tiles at full-tile-step intervals. At each position:
+1. Check if position is already covered
+2. Use `roomExtent()` to find the largest ALL-room rectangle at this position
+   (shrinks width as rows narrow — handles L-corners correctly)
+3. Snap dimensions to increment if partial
+4. Place tile (full or cut) and mark coverage bitmap
+
+**Pass 2**: Fill L-corner gaps at increment-step intervals. Scans every
+increment position for uncovered room pixels left by Pass 1 (happens at
+L-shaped inner corners where the room narrows mid-tile). Places cut tiles
+to fill these gaps.
 
 ### Tile Types
 Only two types: `full` (all 4 edges are puzzle tabs) and `cut` (at least one edge is flat).
@@ -35,9 +49,10 @@ Every physical tile starts with 4 puzzle-tab edges. Each cut creates 2 flat edge
 
 ### Toolbox
 Array of tile pieces not currently placed. Room-agnostic.
+- **Visual previews**: SVG rectangles showing proportional dimensions + cut edges as red dashed lines
 - **Drag from toolbox**: mousedown starts drag, identical to canvas tile drag
-- **Consolidation**: complementary pieces auto-merge (dimensions sum to full tile size, outer edges preserved)
-- **Edge labels**: each item shows which edges are cut (✂L/T/R/B)
+- **Consolidation**: merges pieces where heights match and combined width is increment-aligned (or vice versa). Also tries rotated merges. Outer edges preserved.
+- Pieces are always rectangular (physical constraint of puzzle tiles)
 
 ## Interactions
 
