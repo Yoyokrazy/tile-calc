@@ -234,7 +234,7 @@ describe('clearSlot', () => {
 // ===== consolidateToolbox =====
 
 describe('consolidateToolbox', () => {
-  it('merges two halves into a full tile (width)', () => {
+  it('merges two clean halves into a full tile (width)', () => {
     const tb = [
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: false, t: false, r: true, b: false } } },
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } }
@@ -243,13 +243,27 @@ describe('consolidateToolbox', () => {
     expect(tb).toHaveLength(1);
     expect(tb[0].tile.type).toBe('full');
     expect(tb[0].tile.w).toBe(24);
-    expect(tb[0].tile.h).toBe(24);
+    // Outer edges preserved: l from a (false), r from b (false) → full
+    expect(tb[0].tile.cutEdges.l).toBe(false);
+    expect(tb[0].tile.cutEdges.r).toBe(false);
   });
 
-  it('merges two halves into a full tile (height)', () => {
+  it('preserves outer cut edges when merging (width)', () => {
     const tb = [
-      { tile: { w: 24, h: 12, type: 'cut', cutEdges: {} } },
-      { tile: { w: 24, h: 12, type: 'cut', cutEdges: {} } }
+      { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: true, b: false } } },
+      { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } }
+    ];
+    consolidateToolbox(tb, 24, 24);
+    expect(tb).toHaveLength(1);
+    expect(tb[0].tile.type).toBe('cut'); // still cut because outer edges remain
+    expect(tb[0].tile.cutEdges.l).toBe(true); // from a's left
+    expect(tb[0].tile.cutEdges.r).toBe(false); // from b's right
+  });
+
+  it('merges two halves (height)', () => {
+    const tb = [
+      { tile: { w: 24, h: 12, type: 'cut', cutEdges: { l: false, t: false, r: false, b: true } } },
+      { tile: { w: 24, h: 12, type: 'cut', cutEdges: { l: false, t: true, r: false, b: false } } }
     ];
     consolidateToolbox(tb, 24, 24);
     expect(tb).toHaveLength(1);
@@ -273,10 +287,10 @@ describe('consolidateToolbox', () => {
 
   it('chains multiple merges', () => {
     const tb = [
-      { tile: { w: 12, h: 24, type: 'cut', cutEdges: {} } },
-      { tile: { w: 12, h: 24, type: 'cut', cutEdges: {} } },
-      { tile: { w: 12, h: 24, type: 'cut', cutEdges: {} } },
-      { tile: { w: 12, h: 24, type: 'cut', cutEdges: {} } }
+      { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: false, t: false, r: true, b: false } } },
+      { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } },
+      { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: false, t: false, r: true, b: false } } },
+      { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } }
     ];
     consolidateToolbox(tb, 24, 24);
     expect(tb).toHaveLength(2);

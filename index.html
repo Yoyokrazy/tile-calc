@@ -712,6 +712,32 @@ function getPlacePreview(wx, wy, pieceW, pieceH) {
     ri,valid:canPlace,clipped:clip.clipped};
 }
 
+// ===== EDGE CONSERVATION AUDIT =====
+// Counts total tab edges and cut edges across all placed tiles + toolbox.
+// Invariant: cut_edges ≤ 2 × number_of_cuts (each cut creates exactly 2 cut edges)
+// and total_edges = 4 × tiles_consumed_from_box
+function auditEdges(){
+  if(!simResults||simResults.mode!=='budget')return null;
+  let tabEdges=0,cutEdges=0,totalPieces=0;
+  // Count placed tiles
+  for(const rr of simResults.rooms){for(const t of rr.tiles){
+    if(t.type==='removed'||t.type==='unfilled')continue;
+    totalPieces++;
+    const ce=t.cutEdges||{l:false,t:false,r:false,b:false};
+    [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdges++;else tabEdges++});
+  }}
+  // Count toolbox pieces
+  for(const tb of toolbox){
+    totalPieces++;
+    const ce=tb.tile.cutEdges||{l:false,t:false,r:false,b:false};
+    [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdges++;else tabEdges++});
+  }
+  // Each original tile had 4 tab edges. Each cut destroys 0 tabs but creates 2 cut edges.
+  // So: tabEdges + cutEdges = 4 * tilesConsumed, cutEdges = 2 * numCuts
+  const tilesConsumed=Math.ceil((tabEdges+cutEdges)/4);
+  return{tabEdges,cutEdges,totalPieces,tilesConsumed};
+}
+
 function renderStats(){
   if(!simResults){$('stats').style.display='none';return}
   const t=simResults.totals,isBudget=simResults.mode==='budget';
@@ -740,6 +766,18 @@ function renderStats(){
     <div class="st sm"><div class="v">${s.roomFt2.toFixed(1)}</div><div class="l">ft²</div></div>
     <div class="st sm"><div class="v">${s.full}/${s.cut}</div><div class="l">Full/Cut</div></div>
     <div class="st sm"><div class="v">${s.unfilled?s.unfilled:'—'}</div><div class="l">${isBudget?'Unfilled':'—'}</div></div></div>`;
+  }
+  // Edge conservation audit (budget mode)
+  if(isBudget){
+    const audit=auditEdges();
+    if(audit){
+      html+=`<h3 class="mt">Edge Audit</h3><div class="sg">
+        <div class="st sm"><div class="v">${audit.tabEdges}</div><div class="l">Tab edges</div></div>
+        <div class="st sm"><div class="v">${audit.cutEdges}</div><div class="l">Cut edges</div></div>
+        <div class="st sm"><div class="v">${audit.tilesConsumed}</div><div class="l">Tiles from box</div></div>
+        <div class="st sm"><div class="v">${audit.totalPieces}</div><div class="l">Pieces in play</div></div>
+      </div>`;
+    }
   }
   html+=`<div class="legend" style="margin-top:12px">
     <div class="legend-i"><div class="legend-s" style="background:#4a90d9"></div>Full tile</div>
@@ -1024,11 +1062,20 @@ function consolidateToolbox(){
   while(changed){changed=false;
     for(let i=0;i<toolbox.length;i++){const a=toolbox[i].tile;
       for(let j=i+1;j<toolbox.length;j++){const b=toolbox[j].tile;
+        // Width merge: a on left, b on right (a.cutEdges.r + b.cutEdges.l are the cut seam)
         if(Math.abs(a.h-b.h)<TOL&&Math.abs(a.w+b.w-tw)<TOL){
-          toolbox[i]={tile:{w:tw,h:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}}};
+          // The seam edges (a.r and b.l) cancel out, outer edges preserved
+          const ce={l:a.cutEdges?a.cutEdges.l:false, t:(a.cutEdges?a.cutEdges.t:false)||(b.cutEdges?b.cutEdges.t:false),
+            r:b.cutEdges?b.cutEdges.r:false, b:(a.cutEdges?a.cutEdges.b:false)||(b.cutEdges?b.cutEdges.b:false)};
+          const allClean=!ce.l&&!ce.t&&!ce.r&&!ce.b;
+          toolbox[i]={tile:{w:tw,h:th,type:allClean?'full':'cut',cutEdges:ce}};
           toolbox.splice(j,1);changed=true;break}
+        // Height merge: a on top, b on bottom
         if(Math.abs(a.w-b.w)<TOL&&Math.abs(a.h+b.h-th)<TOL){
-          toolbox[i]={tile:{w:tw,h:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}}};
+          const ce={l:(a.cutEdges?a.cutEdges.l:false)||(b.cutEdges?b.cutEdges.l:false), t:a.cutEdges?a.cutEdges.t:false,
+            r:(a.cutEdges?a.cutEdges.r:false)||(b.cutEdges?b.cutEdges.r:false), b:b.cutEdges?b.cutEdges.b:false};
+          const allClean=!ce.l&&!ce.t&&!ce.r&&!ce.b;
+          toolbox[i]={tile:{w:tw,h:th,type:allClean?'full':'cut',cutEdges:ce}};
           toolbox.splice(j,1);changed=true;break}}
       if(changed)break}}
 }
@@ -1042,9 +1089,12 @@ function updateToolbox(){
   const labels={full:'Full',cut:'Cut'};
   items.innerHTML=toolbox.map((tb,i)=>{
     const c=colors[tb.tile.type]||'#888';const l=labels[tb.tile.type]||tb.tile.type;
+    const ce=tb.tile.cutEdges||{};
+    const edges=[ce.l?'L':'',ce.t?'T':'',ce.r?'R':'',ce.b?'B':''].filter(Boolean).join('');
     return`<div onmousedown="startToolboxDrag(event,${i})" style="display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:4px;cursor:grab;font-size:11px;border:1px solid transparent;background:var(--surface2)">
       <div style="width:8px;height:8px;border-radius:2px;background:${c};flex-shrink:0"></div>
       <span style="flex:1">${l} ${tb.tile.w}"×${tb.tile.h}"</span>
+      ${edges?`<span style="color:var(--muted);font-size:9px" title="Cut edges">✂${edges}</span>`:''}
     </div>`}).join('');
 }
 

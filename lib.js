@@ -99,12 +99,20 @@ export function consolidateToolbox(toolbox, tw, th) {
       const a = toolbox[i].tile;
       for (let j = i + 1; j < toolbox.length; j++) {
         const b = toolbox[j].tile;
+        // Width merge: a on left, b on right
         if (Math.abs(a.h - b.h) < TOL && Math.abs(a.w + b.w - tw) < TOL) {
-          toolbox[i] = { tile: { w: tw, h: th, type: 'full', cutEdges: { l: false, t: false, r: false, b: false } } };
+          const ce = { l: a.cutEdges ? a.cutEdges.l : false, t: (a.cutEdges ? a.cutEdges.t : false) || (b.cutEdges ? b.cutEdges.t : false),
+            r: b.cutEdges ? b.cutEdges.r : false, b: (a.cutEdges ? a.cutEdges.b : false) || (b.cutEdges ? b.cutEdges.b : false) };
+          const allClean = !ce.l && !ce.t && !ce.r && !ce.b;
+          toolbox[i] = { tile: { w: tw, h: th, type: allClean ? 'full' : 'cut', cutEdges: ce } };
           toolbox.splice(j, 1); changed = true; break;
         }
+        // Height merge: a on top, b on bottom
         if (Math.abs(a.w - b.w) < TOL && Math.abs(a.h + b.h - th) < TOL) {
-          toolbox[i] = { tile: { w: tw, h: th, type: 'full', cutEdges: { l: false, t: false, r: false, b: false } } };
+          const ce = { l: (a.cutEdges ? a.cutEdges.l : false) || (b.cutEdges ? b.cutEdges.l : false), t: a.cutEdges ? a.cutEdges.t : false,
+            r: (a.cutEdges ? a.cutEdges.r : false) || (b.cutEdges ? b.cutEdges.r : false), b: b.cutEdges ? b.cutEdges.b : false };
+          const allClean = !ce.l && !ce.t && !ce.r && !ce.b;
+          toolbox[i] = { tile: { w: tw, h: th, type: allClean ? 'full' : 'cut', cutEdges: ce } };
           toolbox.splice(j, 1); changed = true; break;
         }
       }
