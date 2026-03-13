@@ -82,6 +82,7 @@ button.mode-inactive{background:var(--surface2) !important;color:var(--text) !im
   <label>Inc</label>
   <input id="incr" type="number" value="12" min="1" max="120" step="1" style="width:48px" title="Grid snap increment (inches)">
   <span style="font-size:11px;color:var(--muted)">in</span>
+  <button class="sec" onclick="autoIncrement()" title="Auto-detect best increment" style="font-size:10px;padding:3px 6px">Auto</button>
   <div class="sep"></div>
   <button id="calcBtn" class="mode-active" onclick="simulate('calc')"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg> Calculate</button>
   <button id="budgetBtn" class="mode-inactive" onclick="simulate('budget')"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M10.561 8.073a6.005 6.005 0 0 1 3.432 5.142.75.75 0 1 1-1.498.07 4.5 4.5 0 0 0-8.99 0 .75.75 0 0 1-1.498-.07 6.004 6.004 0 0 1 3.431-5.142 3.999 3.999 0 1 1 5.123 0ZM10.5 5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/></svg> Budget</button>
@@ -574,6 +575,60 @@ function simRoom(rm,tw,th,budget,offcuts){
 }
 
 let simMode='calc'; // 'calc' or 'budget'
+
+// Auto-detect the best increment given tile size and room dimensions.
+// Strategy: find the largest factor of the tile size that also evenly
+// divides at least one room dimension's remainder. Prefer factors that
+// minimize total waste (leftover space not covered by increment-aligned cuts).
+// Minimum 2", prefer ≥ 3". Never larger than half the tile.
+function autoIncrement(){
+  const tw=parseFloat($('tileW').value)||24,th=parseFloat($('tileH').value)||24;
+  // Collect all room dimension remainders
+  const remainders=[];
+  for(const rm of rooms){
+    if(!rm.closed||rm.verts.length<3)continue;
+    let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
+    for(const v of rm.verts){mnx=Math.min(mnx,v.x);mny=Math.min(mny,v.y);mxx=Math.max(mxx,v.x);mxy=Math.max(mxy,v.y)}
+    const rw=mxx-mnx,rh=mxy-mny;
+    if(rw%tw>0.5)remainders.push(rw%tw);
+    if(rh%th>0.5)remainders.push(rh%th);
+    // For non-rectangular rooms, also check wall segment lengths
+    const vs=rm.verts,n=vs.length;
+    for(let i=0;i<n;i++){
+      const a=vs[i],b=vs[(i+1)%n];
+      const wl=Math.abs(a.x===b.x?b.y-a.y:b.x-a.x);
+      if(wl%tw>0.5)remainders.push(wl%tw);
+      if(wl%th>0.5)remainders.push(wl%th);
+    }
+  }
+  // Find all factors of tw (and th if different)
+  const factors=new Set();
+  for(let f=2;f<=tw;f++)if(tw%f===0)factors.add(f);
+  if(th!==tw)for(let f=2;f<=th;f++)if(th%f===0)factors.add(f);
+  // Also add GCD-based factors from remainders
+  for(const r of remainders){
+    const ri=Math.round(r);
+    if(ri>=2&&ri<=tw)factors.add(ri);
+    // Check common factors
+    for(let f=2;f<=Math.min(ri,tw);f++)if(ri%f===0&&tw%f===0)factors.add(f);
+  }
+  // Score each factor: lower waste = better. Also prefer larger factors (fewer cuts).
+  const candidates=[...factors].filter(f=>f>=2&&f<=tw/2).sort((a,b)=>a-b);
+  if(candidates.length===0){$('incr').value=Math.max(2,Math.floor(tw/4));return}
+  let bestInc=candidates[0],bestWaste=Infinity;
+  for(const f of candidates){
+    let waste=0;
+    for(const r of remainders){
+      const snapped=Math.floor(r/f)*f;
+      waste+=r-snapped; // wasted inches per edge
+    }
+    // Slight preference for larger increments (fewer cuts) — add tiny penalty per cut
+    const cutPenalty=remainders.length*(tw/f)*0.01;
+    const score=waste+cutPenalty;
+    if(score<bestWaste){bestWaste=score;bestInc=f}
+  }
+  $('incr').value=bestInc;
+}
 
 function simulate(mode){
   if(mode){simMode=mode}
