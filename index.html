@@ -25,7 +25,7 @@ button.mode-inactive{background:var(--surface2) !important;color:var(--text) !im
 #modeTag{font-size:12px;font-weight:600;color:var(--accent);min-width:50px}
 #coords{position:fixed;bottom:12px;left:12px;font-size:12px;color:var(--muted);background:var(--surface);padding:4px 10px;border-radius:4px;z-index:10}
 /* Room list panel */
-#roomPanel{position:fixed;top:52px;left:12px;width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;backdrop-filter:blur(8px);z-index:10;max-height:calc(100vh - 72px);overflow-y:auto}
+#roomPanel{position:fixed;left:12px;width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;backdrop-filter:blur(8px);z-index:10;overflow-y:auto}
 #roomPanel h3{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
 .room-item{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;cursor:pointer;font-size:12px;margin-bottom:2px}
 .room-item:hover{background:var(--surface2)}
@@ -1223,9 +1223,18 @@ function loadFile(input){
   input.value=''; // reset so same file can be loaded again
 }
 
-window.addEventListener('resize',qr);
+function positionRoomPanel(){
+  const tb=$('toolbar'),rp=$('roomPanel');
+  if(!tb||!rp)return;
+  const r=tb.getBoundingClientRect();
+  rp.style.top=(r.bottom+8)+'px';
+  rp.style.maxHeight='calc(100vh - '+(r.bottom+16)+'px)';
+}
+window.addEventListener('resize',()=>{positionRoomPanel();qr()});
 matchMedia('(prefers-color-scheme:light)').addEventListener('change',qr);
-updateModeTag();renderRoomList();qr();
+updateModeTag();renderRoomList();positionRoomPanel();qr();
+requestAnimationFrame(positionRoomPanel);
+new ResizeObserver(positionRoomPanel).observe($('toolbar'));
 </script>
 </body>
 </html>
