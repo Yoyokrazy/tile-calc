@@ -499,7 +499,32 @@ function simRoom(rm,tw,th,budget,offcuts){
   const TOL=.125;
   function roomCells(rx,ry,rW,rH){let tot=0,ins=0;const x0=Math.max(0,Math.floor(rx-minX)),y0=Math.max(0,Math.floor(ry-minY));const x1=Math.min(rw,Math.ceil(rx+rW-minX)),y1=Math.min(rh,Math.ceil(ry+rH-minY));for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){tot++;if(bitmap[y*rw+x])ins++}return{tot,ins}}
   function findOC(nw,nh){let bestI=-1,bestA=Infinity;for(let i=0;i<offcuts.length;i++){const o=offcuts[i];if((o.w>=nw-TOL&&o.h>=nh-TOL)||(o.h>=nw-TOL&&o.w>=nh-TOL)){const a=o.w*o.h;if(a<bestA){bestA=a;bestI=i}}}if(bestI<0)return null;const o=offcuts[bestI];offcuts.splice(bestI,1);const norm=o.w>=nw-TOL&&o.h>=nh-TOL;const ow=norm?o.w:o.h,oh=norm?o.h:o.w,ocW=norm?o.cutW:o.cutH,ocH=norm?o.cutH:o.cutW;const pR=ow-nw>TOL,pB=oh-nh>TOL;const ce={l:ocW,t:ocH,r:pR,b:pB};if(ow-nw>1&&oh>1)offcuts.push({w:ow-nw,h:oh,cutW:true,cutH:ocH});if(oh-nh>1&&nw>1)offcuts.push({w:nw,h:oh-nh,cutW:ocW,cutH:true});return ce}
-  function cutNew(nw,nh){const tR=tw-nw>TOL,tB=th-nh>TOL;const ce={l:false,t:false,r:tR,b:tB};if(tw-nw>1&&nh>1)offcuts.push({w:tw-nw,h:nh,cutW:true,cutH:false});if(th-nh>1&&tw>1)offcuts.push({w:tw,h:th-nh,cutW:false,cutH:true});return ce}
+  // Determine cut edges based on position: cut sides face walls, tab sides face interior
+  function computeCutEdges(tx,ty,nw,nh){
+    const ix0=Math.floor(tx-minX),iy0=Math.floor(ty-minY);
+    const ix1=Math.min(rw-1,Math.floor(tx+nw-minX-0.5));
+    const iy1=Math.min(rh-1,Math.floor(ty+nh-minY-0.5));
+    // Check if each side borders a wall (no room pixel just outside)
+    const wallL=ix0<=0||!bitmap[iy0*rw+(ix0-1)];
+    const wallT=iy0<=0||!bitmap[(iy0-1)*rw+ix0];
+    const wallR=ix1>=rw-1||(ix1+1<rw&&!bitmap[iy0*rw+(ix1+1)]);
+    const wallB=iy1>=rh-1||(iy1+1<rh&&!bitmap[(iy1+1)*rw+ix0]);
+    // Cut edge goes on the wall side if tile is partial in that dimension
+    return{
+      l:nw<tw-TOL&&wallL,
+      t:nh<th-TOL&&wallT,
+      r:nw<tw-TOL&&wallR,
+      b:nh<th-TOL&&wallB
+    };
+  }
+
+  // Create offcut pieces when cutting a new tile
+  function cutNew(nw,nh,tx,ty){
+    const ce=computeCutEdges(tx,ty,nw,nh);
+    if(tw-nw>1&&nh>1)offcuts.push({w:tw-nw,h:nh,cutW:true,cutH:false});
+    if(th-nh>1&&tw>1)offcuts.push({w:tw,h:th-nh,cutW:false,cutH:true});
+    return ce;
+  }
 
   // Compute actual room extent: find largest rectangle at (tx,ty) where ALL pixels are room
   function roomExtent(tx,ty,maxW,maxH){
@@ -565,12 +590,17 @@ function simRoom(rm,tw,th,budget,offcuts){
       if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:tw,h:th,_slotW:tw,_slotH:th,type:'unfilled'});unfilledC++;markCovered(tx,ty,tw,th);continue}
       tiles.push({x:tx,y:ty,w:tw,h:th,_slotW:tw,_slotH:th,type:'full',cutEdges:{l:false,t:false,r:false,b:false}});fullC++;newT++;markCovered(tx,ty,tw,th);
     }else{
+      // Use computeCutEdges for correct wall-facing orientation
+      const ce=computeCutEdges(tx,ty,nw,nh);
       const oc=findOC(nw,nh);
-      if(oc){tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'cut',cutEdges:oc});cutC++;
-        [oc.l,oc.t,oc.r,oc.b].forEach(c=>{if(c)cutEdgeEndcaps++});markCovered(tx,ty,nw,nh);
+      if(oc){
+        // Offcut found — use position-based edges, not offcut's stored edges
+        tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'cut',cutEdges:ce});cutC++;
+        [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdgeEndcaps++});markCovered(tx,ty,nw,nh);
       }else{
         if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'unfilled'});unfilledC++;markCovered(tx,ty,nw,nh);continue}
-        const ce=cutNew(nw,nh);tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'cut',cutEdges:ce});cutC++;newT++;markCovered(tx,ty,nw,nh);
+        cutNew(nw,nh,tx,ty); // creates offcuts
+        tiles.push({x:tx,y:ty,w:nw,h:nh,_slotW:nw,_slotH:nh,type:'cut',cutEdges:ce});cutC++;newT++;markCovered(tx,ty,nw,nh);
         [ce.l,ce.t,ce.r,ce.b].forEach(c=>{if(c)cutEdgeEndcaps++});
       }}}}
 
@@ -617,11 +647,13 @@ function simRoom(rm,tw,th,budget,offcuts){
     if(eW<1||eH<1)continue;
     eW=Math.min(eW,tw);eH=Math.min(eH,th);
     if(budget!==null&&newT>=budget){tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'unfilled'});unfilledC++;markCovered(tx,ty,eW,eH);continue}
+    const ce2=computeCutEdges(tx,ty,eW,eH);
     const oc2=findOC(eW,eH);
-    if(oc2){tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'cut',cutEdges:oc2});cutC++;markCovered(tx,ty,eW,eH);
-      [oc2.l,oc2.t,oc2.r,oc2.b].forEach(c=>{if(c)cutEdgeEndcaps++});
+    if(oc2){tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'cut',cutEdges:ce2});cutC++;markCovered(tx,ty,eW,eH);
+      [ce2.l,ce2.t,ce2.r,ce2.b].forEach(c=>{if(c)cutEdgeEndcaps++});
     }else{
-      const ce2=cutNew(eW,eH);tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'cut',cutEdges:ce2});cutC++;newT++;markCovered(tx,ty,eW,eH);
+      cutNew(eW,eH,tx,ty);
+      tiles.push({x:tx,y:ty,w:eW,h:eH,_slotW:eW,_slotH:eH,type:'cut',cutEdges:ce2});cutC++;newT++;markCovered(tx,ty,eW,eH);
       [ce2.l,ce2.t,ce2.r,ce2.b].forEach(c=>{if(c)cutEdgeEndcaps++});
     }
   }}

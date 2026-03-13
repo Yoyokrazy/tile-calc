@@ -73,7 +73,7 @@
       "cut": 8,
       "newT": 30,
       "unfilled": 18,
-      "cutEdgeEndcaps": 11,
+      "cutEdgeEndcaps": 13,
       "edgeStrips": 44,
       "outCorners": 9,
       "inCorners": 1,
@@ -84,6 +84,13 @@
     },
     "rooms": [
       {
+        "roomName": "game room",
+        "roomBbox": {
+          "x": 60,
+          "y": 36,
+          "w": 168,
+          "h": 84
+        },
         "tiles": [
           {
             "x": 60,
@@ -96,7 +103,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 84,
@@ -109,7 +117,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 108,
@@ -122,7 +131,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 132,
@@ -135,7 +145,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 156,
@@ -148,7 +159,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 180,
@@ -161,7 +173,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 204,
@@ -174,7 +187,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 60,
@@ -187,7 +201,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 84,
@@ -200,7 +215,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 108,
@@ -213,7 +229,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 132,
@@ -226,7 +243,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 156,
@@ -239,7 +257,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 180,
@@ -252,7 +271,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 204,
@@ -265,7 +285,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 60,
@@ -278,7 +299,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 84,
@@ -291,7 +313,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 108,
@@ -304,7 +327,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 132,
@@ -317,7 +341,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 156,
@@ -330,7 +355,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 180,
@@ -343,7 +369,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 204,
@@ -356,7 +383,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 60,
@@ -369,7 +397,8 @@
               "t": false,
               "r": false,
               "b": true
-            }
+            },
+            "area": 288
           },
           {
             "x": 84,
@@ -382,7 +411,8 @@
               "t": true,
               "r": false,
               "b": false
-            }
+            },
+            "area": 288
           },
           {
             "x": 108,
@@ -395,7 +425,8 @@
               "t": false,
               "r": false,
               "b": true
-            }
+            },
+            "area": 288
           },
           {
             "x": 132,
@@ -408,7 +439,8 @@
               "t": true,
               "r": true,
               "b": false
-            }
+            },
+            "area": 144
           },
           {
             "x": 156,
@@ -421,7 +453,8 @@
               "t": false,
               "r": false,
               "b": true
-            }
+            },
+            "area": 144
           },
           {
             "x": 180,
@@ -434,7 +467,8 @@
               "t": true,
               "r": false,
               "b": true
-            }
+            },
+            "area": 144
           },
           {
             "x": 204,
@@ -447,20 +481,22 @@
               "t": true,
               "r": false,
               "b": true
-            }
+            },
+            "area": 144
           },
           {
             "x": 144,
             "y": 108,
-            "w": 24,
+            "w": 12,
             "h": 6,
             "type": "cut",
             "cutEdges": {
-              "l": false,
+              "l": true,
               "t": true,
               "r": false,
-              "b": false
-            }
+              "b": true
+            },
+            "area": 72
           }
         ],
         "stats": {
@@ -468,15 +504,24 @@
           "cut": 8,
           "newT": 24,
           "unfilled": 0,
-          "cutEdgeEndcaps": 11,
+          "cutEdgeEndcaps": 13,
           "edgeStrips": 24,
           "outCorners": 5,
           "inCorners": 1,
           "perimIn": 504,
           "roomFt2": 94.5
-        }
+        },
+        "placedCount": 29,
+        "unfilledCount": 0
       },
       {
+        "roomName": "craft room",
+        "roomBbox": {
+          "x": 60,
+          "y": 144,
+          "w": 144,
+          "h": 84
+        },
         "tiles": [
           {
             "x": 60,
@@ -489,7 +534,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 84,
@@ -502,7 +548,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 108,
@@ -515,7 +562,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 132,
@@ -528,7 +576,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 156,
@@ -541,7 +590,8 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 180,
@@ -554,133 +604,152 @@
               "t": false,
               "r": false,
               "b": false
-            }
+            },
+            "area": 576
           },
           {
             "x": 60,
             "y": 168,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 84,
             "y": 168,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 108,
             "y": 168,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 132,
             "y": 168,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 156,
             "y": 168,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 180,
             "y": 168,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 60,
             "y": 192,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 84,
             "y": 192,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 108,
             "y": 192,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 132,
             "y": 192,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 156,
             "y": 192,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 180,
             "y": 192,
             "w": 24,
             "h": 24,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 576
           },
           {
             "x": 60,
             "y": 216,
             "w": 24,
             "h": 12,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 288
           },
           {
             "x": 84,
             "y": 216,
             "w": 24,
             "h": 12,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 288
           },
           {
             "x": 108,
             "y": 216,
             "w": 24,
             "h": 12,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 288
           },
           {
             "x": 132,
             "y": 216,
             "w": 24,
             "h": 12,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 288
           },
           {
             "x": 156,
             "y": 216,
             "w": 24,
             "h": 12,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 288
           },
           {
             "x": 180,
             "y": 216,
             "w": 24,
             "h": 12,
-            "type": "unfilled"
+            "type": "unfilled",
+            "area": 288
           }
         ],
         "stats": {
@@ -694,10 +763,13 @@
           "inCorners": 0,
           "perimIn": 456,
           "roomFt2": 84
-        }
+        },
+        "placedCount": 6,
+        "unfilledCount": 18
       }
     ],
-    "toolbox": []
+    "toolbox": [],
+    "toolboxCount": 0
   },
-  "savedAt": "2026-03-13T21:23:58.964Z"
+  "savedAt": "2026-03-13T21:56:27.113Z"
 }
