@@ -796,17 +796,34 @@ function freePlaceTile(srcTile, wx, wy) {
     cutEdges:ce};
   const tiles=simResults.rooms[ri].tiles;
   tiles.push(newTile);
-  // Remove any unfilled slots that this tile now covers
+  // Handle unfilled slots that overlap with the new tile
+  const newSlots=[];
   for(let i=tiles.length-2;i>=0;i--){
     const t=tiles[i];
     if(t.type!=='unfilled')continue;
-    // Check if our new tile fully covers this unfilled slot
-    if(clipL<=t.x+TOL&&clipT<=t.y+TOL&&clipR>=t.x+t.w-TOL&&clipB>=t.y+t.h-TOL){
-      t.type='removed'}
-    // Partially covered unfilled → also remove (simplification — avoids visual glitches)
-    else if(clipL<t.x+t.w-TOL&&clipR>t.x+TOL&&clipT<t.y+t.h-TOL&&clipB>t.y+TOL){
-      t.type='removed'}
+    const tR=t.x+t.w, tB=t.y+t.h;
+    // No overlap at all → skip
+    if(clipL>=tR-TOL||clipR<=t.x+TOL||clipT>=tB-TOL||clipB<=t.y+TOL)continue;
+    // Fully covered → remove
+    if(clipL<=t.x+TOL&&clipT<=t.y+TOL&&clipR>=tR-TOL&&clipB>=tB-TOL){
+      t.type='removed';continue}
+    // Partially covered → split into uncovered remnants
+    t.type='removed';
+    // Left remnant
+    if(clipL>t.x+TOL){const w=clipL-t.x;if(w>1)
+      newSlots.push({x:t.x,y:t.y,w,h:t.h,_slotW:w,_slotH:t.h,type:'unfilled',cutEdges:null})}
+    // Right remnant
+    if(clipR<tR-TOL){const w=tR-clipR;if(w>1)
+      newSlots.push({x:clipR,y:t.y,w,h:t.h,_slotW:w,_slotH:t.h,type:'unfilled',cutEdges:null})}
+    // Top remnant (between left and right clip bounds)
+    const remL=Math.max(t.x,clipL),remR=Math.min(tR,clipR),remW=remR-remL;
+    if(clipT>t.y+TOL&&remW>1){const h=clipT-t.y;if(h>1)
+      newSlots.push({x:remL,y:t.y,w:remW,h,_slotW:remW,_slotH:h,type:'unfilled',cutEdges:null})}
+    // Bottom remnant
+    if(clipB<tB-TOL&&remW>1){const h=tB-clipB;if(h>1)
+      newSlots.push({x:remL,y:clipB,w:remW,h,_slotW:remW,_slotH:h,type:'unfilled',cutEdges:null})}
   }
+  for(const s of newSlots)tiles.push(s);
   tryMergeAdjacent(ri, tiles.length-1);
   return{placed:true, ri};
 }
