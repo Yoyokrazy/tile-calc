@@ -1,0 +1,690 @@
+{
+  "version": 2,
+  "rooms": [
+    {
+      "name": "game room",
+      "verts": [
+        {
+          "x": 60,
+          "y": 120
+        },
+        {
+          "x": 144,
+          "y": 120
+        },
+        {
+          "x": 144,
+          "y": 114
+        },
+        {
+          "x": 228,
+          "y": 114
+        },
+        {
+          "x": 228,
+          "y": 36
+        },
+        {
+          "x": 60,
+          "y": 36
+        }
+      ],
+      "closed": true,
+      "priority": 1,
+      "color": "#4a90d9"
+    },
+    {
+      "name": "craft room",
+      "verts": [
+        {
+          "x": 60,
+          "y": 228
+        },
+        {
+          "x": 204,
+          "y": 228
+        },
+        {
+          "x": 204,
+          "y": 144
+        },
+        {
+          "x": 60,
+          "y": 144
+        }
+      ],
+      "closed": true,
+      "priority": 2,
+      "color": "#e6a23c"
+    }
+  ],
+  "tileW": 24,
+  "tileH": 24,
+  "increment": 6,
+  "tabDepth": 0.25,
+  "budget": "30",
+  "snapMode": true,
+  "simMode": "budget",
+  "simulation": {
+    "mode": "budget",
+    "arranged": true,
+    "totals": {
+      "full": 26,
+      "cut": 8,
+      "newT": 30,
+      "unfilled": 18,
+      "cutEdgeEndcaps": 8,
+      "edgeStrips": 44,
+      "outCorners": 9,
+      "inCorners": 1,
+      "roomFt2": 178.5,
+      "waste": 0,
+      "tileFt2": 120,
+      "budget": 30
+    },
+    "rooms": [
+      {
+        "tiles": [
+          {
+            "x": 60,
+            "y": 36,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 84,
+            "y": 36,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 108,
+            "y": 36,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 132,
+            "y": 36,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 156,
+            "y": 36,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 180,
+            "y": 36,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 204,
+            "y": 36,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 60,
+            "y": 60,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 84,
+            "y": 60,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 108,
+            "y": 60,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 132,
+            "y": 60,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 156,
+            "y": 60,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 180,
+            "y": 60,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 204,
+            "y": 60,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 60,
+            "y": 84,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 84,
+            "y": 84,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 108,
+            "y": 84,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 132,
+            "y": 84,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 156,
+            "y": 84,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 180,
+            "y": 84,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 204,
+            "y": 84,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 60,
+            "y": 108,
+            "w": 24,
+            "h": 12,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": true
+            }
+          },
+          {
+            "x": 84,
+            "y": 108,
+            "w": 24,
+            "h": 12,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": true,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 108,
+            "y": 108,
+            "w": 24,
+            "h": 12,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": true
+            }
+          },
+          {
+            "x": 132,
+            "y": 108,
+            "w": 24,
+            "h": 12,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": true,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 156,
+            "y": 108,
+            "w": 24,
+            "h": 12,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": true
+            }
+          },
+          {
+            "x": 180,
+            "y": 108,
+            "w": 24,
+            "h": 12,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": true,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 204,
+            "y": 108,
+            "w": 24,
+            "h": 12,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": true
+            }
+          }
+        ],
+        "stats": {
+          "full": 21,
+          "cut": 7,
+          "newT": 25,
+          "unfilled": 0,
+          "cutEdgeEndcaps": 7,
+          "edgeStrips": 24,
+          "outCorners": 5,
+          "inCorners": 1,
+          "perimIn": 504,
+          "roomFt2": 94.5
+        }
+      },
+      {
+        "tiles": [
+          {
+            "x": 60,
+            "y": 144,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 84,
+            "y": 144,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 108,
+            "y": 144,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 132,
+            "y": 144,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 156,
+            "y": 144,
+            "w": 24,
+            "h": 24,
+            "type": "full",
+            "cutEdges": {
+              "l": false,
+              "t": false,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 180,
+            "y": 144,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 60,
+            "y": 168,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 84,
+            "y": 168,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 108,
+            "y": 168,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 132,
+            "y": 168,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 156,
+            "y": 168,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 180,
+            "y": 168,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 60,
+            "y": 192,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 84,
+            "y": 192,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 108,
+            "y": 192,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 132,
+            "y": 192,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 156,
+            "y": 192,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 180,
+            "y": 192,
+            "w": 24,
+            "h": 24,
+            "type": "unfilled"
+          },
+          {
+            "x": 60,
+            "y": 216,
+            "w": 24,
+            "h": 12,
+            "type": "cut",
+            "cutEdges": {
+              "l": false,
+              "t": true,
+              "r": false,
+              "b": false
+            }
+          },
+          {
+            "x": 84,
+            "y": 216,
+            "w": 24,
+            "h": 12,
+            "type": "unfilled"
+          },
+          {
+            "x": 108,
+            "y": 216,
+            "w": 24,
+            "h": 12,
+            "type": "unfilled"
+          },
+          {
+            "x": 132,
+            "y": 216,
+            "w": 24,
+            "h": 12,
+            "type": "unfilled"
+          },
+          {
+            "x": 156,
+            "y": 216,
+            "w": 24,
+            "h": 12,
+            "type": "unfilled"
+          },
+          {
+            "x": 180,
+            "y": 216,
+            "w": 24,
+            "h": 12,
+            "type": "unfilled"
+          }
+        ],
+        "stats": {
+          "full": 5,
+          "cut": 1,
+          "newT": 5,
+          "unfilled": 18,
+          "cutEdgeEndcaps": 1,
+          "edgeStrips": 20,
+          "outCorners": 4,
+          "inCorners": 0,
+          "perimIn": 456,
+          "roomFt2": 84
+        }
+      }
+    ],
+    "toolbox": []
+  },
+  "savedAt": "2026-03-13T19:34:22.163Z"
+}
