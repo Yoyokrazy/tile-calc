@@ -760,7 +760,13 @@ C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;const rwx=s2w
   // Tile drag
   if(dragTileInfo){
     const dx=sx-mdPos.x,dy=sy-mdPos.y;
-    if(!dragTileInfo.pos&&dx*dx+dy*dy>DT*DT){dragTileInfo.pos={x:0,y:0}}
+    if(!dragTileInfo.pos&&dx*dx+dy*dy>DT*DT){
+      dragTileInfo.pos={x:0,y:0};
+      // Clear source slot immediately so it becomes a valid drop target
+      const srcT=simResults.rooms[dragTileInfo.ri].tiles[dragTileInfo.ti];
+      clearSlot(srcT);
+      dragTileInfo.cleared=true;
+    }
     if(dragTileInfo.pos){dragTileInfo.pos={x:sx-dragTileInfo.offX,y:sy-dragTileInfo.offY};
       hoverTile=hitTile(sx,sy);C.style.cursor='grabbing';qr();return}}
   if(mdVert>=0&&mdPos&&!didDrag){const dx=sx-mdPos.x,dy=sy-mdPos.y;if(dx*dx+dy*dy>DT*DT){didDrag=true;dragVert=mdVert;if(shouldSnap())beginCD(mdVert);else dragWallOrients=null}}
@@ -794,21 +800,21 @@ C.addEventListener('mouseup',e=>{
       const td=dragTileInfo.tileData;
       const srcT=simResults.rooms[dragTileInfo.ri].tiles[dragTileInfo.ti];
       let placed=false;
-      if(drop&&!(drop.ri===dragTileInfo.ri&&drop.ti===dragTileInfo.ti)){
+      if(drop){
         const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
-        if(dstT.type==='unfilled'){placed=placeTileInSlot(td,dstT)}}
-      // If drop on same slot → return tile, no-op
-      if(drop&&drop.ri===dragTileInfo.ri&&drop.ti===dragTileInfo.ti){
-        // No-op: tile stays where it was (restore from clear)
-        srcT.type=td.type;srcT.w=td.w;srcT.h=td.h;srcT.cutEdges=td.cutEdges;
-      }else if(placed){
-        clearSlot(srcT);
-        tryMergeAdjacent(drop.ri,drop.ti);
-      }else{
-        // Dropped on nothing or incompatible slot → send to toolbox
-        toolbox.push({tile:{...td}});clearSlot(srcT);consolidateToolbox();
+        if(dstT.type==='unfilled'){
+          placed=placeTileInSlot(td,dstT);
+          if(placed)tryMergeAdjacent(drop.ri,drop.ti);
+        }
       }
-      updateToolbox();renderStats()}
+      if(!placed){
+        // Dropped on nothing or incompatible → send to toolbox
+        toolbox.push({tile:{...td}});consolidateToolbox();
+      }
+      updateToolbox();renderStats()
+    }else{
+      // Never actually dragged (didn't pass threshold) — no-op, source wasn't cleared
+    }
     dragTileInfo=null;C.style.cursor='default';mdPos=null;qr();return}
   if(dragVert>=0){dragVert=-1;dragWallOrients=null;alignGuides=[];C.style.cursor='grab';mdPos=null;mdVert=-1;mdWall=-1;qr();return}
   const sx=e.clientX,rm=R(),vs=rm.verts;
