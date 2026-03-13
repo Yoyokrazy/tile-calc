@@ -421,29 +421,46 @@ function drawTiles(){
       if(ce.t){ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+fw,fy);ctx.stroke()}
       if(ce.b){ctx.beginPath();ctx.moveTo(fx,fy+fh);ctx.lineTo(fx+fw,fy+fh);ctx.stroke()}
       ctx.setLineDash([])}}}
-  // Dragged tile ghost
+  // Held tile preview at cursor / snapped to grid
+  if(heldTile&&hd){
+    const wx=s2wx(mouseScreen.x),wy=s2wy(mouseScreen.y);
+    const prev=getPlacePreview(wx,wy,hd.w,hd.h);
+    if(prev){
+      // Show snapped position
+      const spx=w2x(prev.x),spy=w2y(prev.y),spw=hd.w*scale,sph=hd.h*scale;
+      ctx.strokeStyle=prev.valid?'#67c23a':'rgba(255,80,80,0.6)';ctx.lineWidth=3;ctx.globalAlpha=0.7;
+      ctx.strokeRect(spx,spy,spw,sph);
+      ctx.fillStyle=prev.valid?'rgba(103,194,58,0.2)':'rgba(255,80,80,0.1)';ctx.fillRect(spx,spy,spw,sph);
+      ctx.globalAlpha=1;
+      ctx.fillStyle=prev.valid?'#67c23a':'#f56c6c';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(`${hd.w}"×${hd.h}"`,spx+spw/2,spy+sph/2);
+      ctx.textAlign='start';ctx.textBaseline='alphabetic';
+    }else{
+      // Not over any room — show at cursor
+      const pw=hd.w*scale,ph=hd.h*scale;
+      const px=mouseScreen.x-pw/2,py=mouseScreen.y-ph/2;
+      ctx.strokeStyle='rgba(255,80,80,0.4)';ctx.lineWidth=2;ctx.globalAlpha=0.5;
+      ctx.strokeRect(px,py,pw,ph);ctx.globalAlpha=1;
+    }
+  }
+  // Drag tile preview snapped to grid
   if(dragTileInfo&&dragTileInfo.pos){
     const td=dragTileInfo.tileData;
-    ctx.globalAlpha=0.5;ctx.fillStyle='rgba(74,144,217,0.5)';
+    const wx=s2wx(mouseScreen.x),wy=s2wy(mouseScreen.y);
+    const prev=getPlacePreview(wx,wy,td.w,td.h);
+    // Ghost at cursor
+    ctx.globalAlpha=0.4;ctx.fillStyle='rgba(74,144,217,0.5)';
     ctx.fillRect(dragTileInfo.pos.x,dragTileInfo.pos.y,td.w*scale,td.h*scale);
-    ctx.strokeStyle='#fff';ctx.lineWidth=2;
-    ctx.strokeRect(dragTileInfo.pos.x,dragTileInfo.pos.y,td.w*scale,td.h*scale);
     ctx.globalAlpha=1;
-    // Label
-    ctx.fillStyle='#fff';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(`${td.w}"×${td.h}"`,dragTileInfo.pos.x+td.w*scale/2,dragTileInfo.pos.y+td.h*scale/2);
-    ctx.textAlign='start';ctx.textBaseline='alphabetic'}
-  // Held tile preview at cursor
-  if(heldTile&&hd){
-    const pw=hd.w*scale,ph=hd.h*scale;
-    const px=mouseScreen.x-pw/2,py=mouseScreen.y-ph/2;
-    ctx.strokeStyle='#67c23a';ctx.lineWidth=3;ctx.globalAlpha=0.7;
-    ctx.strokeRect(px,py,pw,ph);
-    ctx.fillStyle='rgba(103,194,58,0.15)';ctx.fillRect(px,py,pw,ph);
-    ctx.globalAlpha=1;
-    ctx.fillStyle='#67c23a';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(`${hd.w}"×${hd.h}"`,px+pw/2,py+ph/2);
-    ctx.textAlign='start';ctx.textBaseline='alphabetic'}
+    // Snapped preview
+    if(prev){
+      const spx=w2x(prev.x),spy=w2y(prev.y),spw=td.w*scale,sph=td.h*scale;
+      ctx.strokeStyle=prev.valid?'#67c23a':'rgba(255,80,80,0.6)';ctx.lineWidth=2.5;
+      ctx.strokeRect(spx,spy,spw,sph);
+      ctx.fillStyle=prev.valid?'rgba(103,194,58,0.15)':'rgba(255,80,80,0.08)';
+      ctx.fillRect(spx,spy,spw,sph);
+    }
+  }
   // Room outlines
   for(const rm of rooms){
     if(!rm.closed||rm.verts.length<3)continue;
@@ -707,6 +724,87 @@ function tryMergeAdjacent(ri, ti) {
   }
 }
 
+// ===== FREE PLACEMENT =====
+// Snap world coords to half-tile grid relative to room bbox
+function snapToTileGrid(wx, wy, ri) {
+  const tw=parseFloat($('tileW').value)||24, th=parseFloat($('tileH').value)||24;
+  const rm=rooms[ri]||rooms[0]; if(!rm.closed)return{x:snp(wx),y:snp(wy)};
+  let minX=Infinity,minY=Infinity;
+  for(const v of rm.verts){minX=Math.min(minX,v.x);minY=Math.min(minY,v.y)}
+  // Snap to half-tile increments from room origin
+  const halfW=tw/2, halfH=th/2;
+  const gx=Math.round((wx-minX)/halfW)*halfW+minX;
+  const gy=Math.round((wy-minY)/halfH)*halfH+minY;
+  return{x:gx,y:gy};
+}
+
+// Check if a rect overlaps any placed tile in a room
+function overlapsAny(ri, x, y, w, h, excludeTi) {
+  const TOL=0.5;
+  const tiles=simResults.rooms[ri].tiles;
+  for(let i=0;i<tiles.length;i++){
+    if(i===excludeTi)continue;
+    const t=tiles[i];
+    if(t.type==='removed'||t.type==='unfilled')continue;
+    if(x+w>t.x+TOL&&x<t.x+t.w-TOL&&y+h>t.y+TOL&&y<t.y+t.h-TOL)return true;
+  }
+  return false;
+}
+
+// Check how much of a rect is inside a room polygon (by sampling)
+function rectInRoom(ri, x, y, w, h) {
+  const vs=rooms[ri].verts; if(!vs||vs.length<3)return 0;
+  let inside=0, total=0;
+  const step=Math.max(1, Math.min(w,h)/4);
+  for(let py=y+step/2;py<y+h;py+=step)
+    for(let px=x+step/2;px<x+w;px+=step){total++;if(pip(vs,px,py))inside++}
+  return total>0?inside/total:0;
+}
+
+// Find which room a world point is inside
+function findRoomAt(wx,wy){
+  for(let ri=0;ri<rooms.length;ri++){
+    if(rooms[ri].closed&&pip(rooms[ri].verts,wx,wy))return ri}
+  return-1;
+}
+
+// Try to freely place a tile piece at a world position
+// Returns {ri, placed:true} or {placed:false}
+function freePlaceTile(srcTile, wx, wy) {
+  const tw=parseFloat($('tileW').value)||24, th=parseFloat($('tileH').value)||24;
+  // Find which room this point is in
+  const ri=findRoomAt(wx,wy);
+  if(ri<0)return{placed:false};
+  // Snap to grid
+  const g=snapToTileGrid(wx-srcTile.w/2, wy-srcTile.h/2, ri);
+  const px=g.x, py=g.y;
+  // Check room coverage
+  const coverage=rectInRoom(ri, px, py, srcTile.w, srcTile.h);
+  if(coverage<0.1)return{placed:false};
+  // Check overlap
+  if(overlapsAny(ri, px, py, srcTile.w, srcTile.h, -1))return{placed:false};
+  // Place it
+  const newTile={x:px, y:py, w:srcTile.w, h:srcTile.h,
+    _slotW:srcTile.w, _slotH:srcTile.h,
+    type:srcTile.type||'cut',
+    cutEdges:srcTile.cutEdges?{...srcTile.cutEdges}:{l:false,t:false,r:false,b:false},
+    _reallocated:true};
+  simResults.rooms[ri].tiles.push(newTile);
+  // Try merge with neighbor
+  tryMergeAdjacent(ri, simResults.rooms[ri].tiles.length-1);
+  return{placed:true, ri};
+}
+
+// Get the snapped preview position for a held/dragged tile
+function getPlacePreview(wx, wy, pieceW, pieceH) {
+  const ri=findRoomAt(wx,wy);
+  if(ri<0)return null;
+  const g=snapToTileGrid(wx-pieceW/2, wy-pieceH/2, ri);
+  const coverage=rectInRoom(ri, g.x, g.y, pieceW, pieceH);
+  const overlaps=overlapsAny(ri, g.x, g.y, pieceW, pieceH, -1);
+  return{x:g.x, y:g.y, ri, valid:coverage>=0.1&&!overlaps, coverage};
+}
+
 // ===== MOUSE =====
 const DT=5;
 function isOverXBtn(sx,sy,t){
@@ -721,15 +819,22 @@ C.addEventListener('mousedown',e=>{const sx=e.clientX,sy=e.clientY;
   const isBM=simResults&&simResults.mode==='budget';
   // Held tile placement
   if(isBM&&heldTile){
+    const hd=heldDims();
+    const srcTile={w:hd.w,h:hd.h,type:heldTile.tile.type,cutEdges:heldTile.tile.cutEdges};
+    // Try existing unfilled slot first
     const ht=hitTile(sx,sy);
+    let placed=false;
     if(ht){const t=simResults.rooms[ht.ri].tiles[ht.ti];
-      if(t.type==='unfilled'){
-        const hd=heldDims();
-        const srcTile={w:hd.w,h:hd.h,type:heldTile.tile.type,cutEdges:heldTile.tile.cutEdges};
-        if(placeTileInSlot(srcTile,t)){
-          toolbox.splice(heldTile._idx,1);heldTile=null;
-          tryMergeAdjacent(ht.ri,ht.ti);
-          heldRotated=false;updateToolbox();renderStats();qr();return}}}
+      if(t.type==='unfilled'&&placeTileInSlot(srcTile,t)){
+        tryMergeAdjacent(ht.ri,ht.ti);placed=true}}
+    // Otherwise try free placement anywhere in a room
+    if(!placed){
+      const wx=s2wx(sx),wy=s2wy(sy);
+      const res=freePlaceTile(srcTile,wx,wy);
+      if(res.placed)placed=true}
+    if(placed){toolbox.splice(heldTile._idx,1);heldTile=null;
+      heldRotated=false;updateToolbox();renderStats();qr();return}
+    // Click empty/invalid = cancel
     heldTile=null;heldRotated=false;updateToolbox();qr();return}
   // Budget mode: X button or start drag
   if(isBM&&hoverTile){
@@ -800,6 +905,7 @@ C.addEventListener('mouseup',e=>{
       const td=dragTileInfo.tileData;
       const srcT=simResults.rooms[dragTileInfo.ri].tiles[dragTileInfo.ti];
       let placed=false;
+      // Try existing unfilled slot
       if(drop){
         const dstT=simResults.rooms[drop.ri].tiles[drop.ti];
         if(dstT.type==='unfilled'){
@@ -807,8 +913,14 @@ C.addEventListener('mouseup',e=>{
           if(placed)tryMergeAdjacent(drop.ri,drop.ti);
         }
       }
+      // Otherwise try free placement
       if(!placed){
-        // Dropped on nothing or incompatible → send to toolbox
+        const wx=s2wx(e.clientX),wy=s2wy(e.clientY);
+        const res=freePlaceTile(td,wx,wy);
+        if(res.placed)placed=true;
+      }
+      if(!placed){
+        // Can't place → send to toolbox
         toolbox.push({tile:{...td}});consolidateToolbox();
       }
       updateToolbox();renderStats()
