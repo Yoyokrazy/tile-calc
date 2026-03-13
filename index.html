@@ -425,12 +425,12 @@ function drawTiles(){
       if(isAsymmetric(t)||(t.cutEdges&&(t.cutEdges.l!==t.cutEdges.r||t.cutEdges.t!==t.cutEdges.b))){
         ctx.fillStyle='rgba(80,130,200,0.85)';
         ctx.beginPath();ctx.roundRect(sx+sw-bsz,sy,bsz,bsz,3);ctx.fill();
-        ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
-        // Rotate arrow icon
-        const cx2=sx+sw-bsz/2,cy2=sy+bsz/2,r2=bsz*0.3;
-        ctx.beginPath();ctx.arc(cx2,cy2,r2,-.5,Math.PI*.8);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(cx2+r2*Math.cos(.8*Math.PI),cy2+r2*Math.sin(.8*Math.PI));
-        ctx.lineTo(cx2+r2*Math.cos(.8*Math.PI)-3,cy2+r2*Math.sin(.8*Math.PI)-2);ctx.stroke()}
+        // Primer sync icon scaled to button
+        ctx.save();ctx.translate(sx+sw-bsz+bsz*0.15,sy+bsz*0.15);
+        const s2=bsz*0.7/16;ctx.scale(s2,s2);
+        ctx.fillStyle='#fff';
+        ctx.fill(new Path2D('M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z'));
+        ctx.restore()}
     }
     if(t.cutEdges){const ce=t.cutEdges;const fx=w2x(t.x),fy=w2y(t.y),fw=t.w*scale,fh=t.h*scale;
       ctx.strokeStyle='rgba(245,80,80,0.85)';ctx.lineWidth=Math.max(2,scale*.35);ctx.setLineDash([4,3]);
@@ -1026,7 +1026,7 @@ C.addEventListener('mousemove',e=>{const sx=e.clientX,sy=e.clientY;const rwx=s2w
   else if(hoverWall>=0)C.style.cursor='pointer';
   else if(isBM&&hoverTile){
     const t=simResults.rooms[hoverTile.ri].tiles[hoverTile.ti];
-    if(t.type!=='unfilled'&&t.type!=='removed')C.style.cursor=isOverXBtn(sx,sy,t)?'pointer':'grab';
+    if(t.type!=='unfilled'&&t.type!=='removed')C.style.cursor=(isOverXBtn(sx,sy,t)||isOverRotBtn(sx,sy,t))?'pointer':'grab';
     else C.style.cursor='default';
   }else C.style.cursor=drawFrom>=0&&!rm.closed?'crosshair':'default';
   qr()});
