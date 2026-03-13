@@ -1,80 +1,93 @@
-# Tile Calc — Budget Mode Tile Interaction Spec
+# Tile Calc — Interaction Spec
 
 ## Core Data Model
 
-### Tile Slot
-Every position in the simulation grid is a **slot**. A slot always exists at its grid position `{x, y}` with the slot's expected dimensions `{slotW, slotH}`. A slot has a **state**:
+### Occupancy Bitmap
+Each room has a 1-inch resolution bitmap (`Int16Array`). Values:
+- `0` = outside room polygon
+- `1` = inside room, empty (available for placement)
+- `2+` = occupied by tile ID (tile index + 2)
 
-- `filled` — a tile (or piece of one) occupies this slot. Has `tile: {w, h, type, cutEdges}`.
-- `empty` — nothing here, available for placement. Rendered with grey hatching.
-
-The **slot dimensions** (`slotW, slotH`) never change — they represent what the simulation computed as the needed piece for that position. The **tile** inside a slot can be equal to or smaller than the slot.
+The bitmap is the single source of truth for what space is available.
 
 ### Tile Piece
 A tile piece has:
+- `x, y` — position in world inches
 - `w, h` — actual dimensions of this piece
-- `type` — `full`, `cut`, `reused` (display hint only)
-- `cutEdges` — `{l, t, r, b}` booleans. `true` = that side was cut (flat, needs endcap). `false` = original puzzle tab edge.
+- `type` — `full` or `cut`
+- `cutEdges` — `{l, t, r, b}` booleans. `true` = that side was cut (flat, no puzzle tab). `false` = original puzzle tab edge.
+
+### Grid Increment
+User-configurable snap increment (default 12"). Controls:
+- Grid snapping for all tile placement
+- Cut dimensions when clipping to room boundary (snaps DOWN to increment)
+- Changing increment auto-recomputes simulation
+
+### Tile Types
+Only two types: `full` (all 4 edges are puzzle tabs) and `cut` (at least one edge is flat).
+No "reused" distinction — a cut tile is a cut tile regardless of origin.
+
+### Cut Edge Physics
+Every physical tile starts with 4 puzzle-tab edges. Each cut creates 2 flat edges (one on each piece). Conservation:
+- `tab_edges + cut_edges = 4 × tiles_consumed`
+- Merging two complementary halves: seam edges cancel, outer edges preserved
+- Only becomes `full` again if all 4 outer edges are tabs
 
 ### Toolbox
-An array of tile pieces not currently placed. Room-agnostic. Pieces can be:
-- Picked up from toolbox → "held" → placed into an empty slot
-- Combined: complementary cuts auto-merge into full tiles
+Array of tile pieces not currently placed. Room-agnostic.
+- **Drag from toolbox**: mousedown starts drag, identical to canvas tile drag
+- **Consolidation**: complementary pieces auto-merge (dimensions sum to full tile size, outer edges preserved)
+- **Edge labels**: each item shows which edges are cut (✂L/T/R/B)
 
 ## Interactions
 
 ### Remove tile (X button)
-- Hover a filled slot → X button appears top-left
-- Click X → tile piece moves to toolbox, slot becomes `empty`
-- The slot retains its original `slotW, slotH` for future placement
+- Hover a placed tile → X button appears top-left
+- Click X → tile goes to toolbox, bitmap cleared to `1` (empty)
 
-### Pick from toolbox
-- Click toolbox item → piece is "held" (green outline at cursor)
-- R key rotates held piece 90°
-- Hover empty slot → preview:
-  - **Green**: piece fits (equal or smaller than slot)
-  - **Orange + cut line**: piece is larger, will be cut. Shows the portion that fits and the offcut
-  - **No highlight**: piece doesn't fit in either dimension after considering cut
-- Click empty slot → place piece (with cut-to-fit if needed), offcuts to toolbox
-- Click empty canvas or Esc → cancel hold
+### Rotate tile (↻ button or R key)
+- Hover an asymmetric tile or one with asymmetric cut edges → rotate button appears top-right
+- Click rotate → tile rotates 90° CW in place (bitmap updated)
+- R key during drag → rotates the dragged piece preview
 
-### Drag tile on canvas
-- Hold+drag a filled tile → ghost outline follows cursor
-- Source slot becomes `empty` immediately (so you can see it)
-- Hover empty slot → same green/orange preview as toolbox
-- Release on empty slot → place (with cut-to-fit)
-- Release on non-empty or canvas → tile returns to toolbox (since source is already empty)
+### Drag tile (canvas or toolbox)
+1. **Start**: mousedown on placed tile or toolbox item
+2. **Threshold**: 5px movement triggers drag
+3. **Source cleared**: canvas tile → `occClear` + `clearSlot`; toolbox item → spliced from array
+4. **During drag**: ghost outline at cursor + snapped preview at grid position
+   - Green outline = valid placement
+   - Red outline = invalid (overlap or outside room)
+   - Cut edge indicators shown on preview
+5. **R key**: rotates piece 90° CW (cycles through 0°/90°/180°/270°)
+6. **Drop on valid position**: `freePlaceTile` with rotation applied
+   - Clips to room boundary at increment-snapped dimensions
+   - Offcuts go to toolbox
+   - Cut edges set on clipped sides
+7. **Drop on invalid/nothing**: tile goes to toolbox
 
-### Place logic (shared)
-Given a piece `{w, h}` and a slot `{slotW, slotH}`:
+### Free Placement Logic
+Given a piece `{w, h, cutEdges}` dropped at world coords `(wx, wy)`:
 
-1. **Exact fit** (`piece.w ≈ slot.w && piece.h ≈ slot.h`): place as-is
-2. **Piece smaller** (`piece.w ≤ slot.w && piece.h ≤ slot.h`): place, piece keeps its dimensions
-3. **Piece larger, can cut** (`piece.w ≥ slot.w && piece.h ≥ slot.h`): 
-   - Cut piece to slot dimensions
-   - Placed piece gets cut edges on trimmed sides
-   - Offcuts (width remainder, height remainder) go to toolbox with cut edge on the cut side
-   - Offcuts inherit non-cut edges from parent
-4. **Mismatch** (piece larger in one dim, smaller in other): cannot place
+1. Find which room the cursor is in
+2. Snap position to grid increment
+3. Clip to room bounding box (snap clip dimensions DOWN to increment)
+4. Check occupancy bitmap — all room pixels must be `1` (empty)
+5. Place: stamp tile ID on bitmap, add to tile array
+6. Create offcuts for trimmed portions → toolbox
+7. Try merge with adjacent tiles
 
 ### Restore All
-- Every slot that was manually emptied (has `_origType`) gets restored
-- Toolbox is cleared
-- Does NOT restore the simulation — just undoes manual edits
+- Replaces all tile arrays from `simResults._snapshot` (deep clone made at simulation time)
+- Rebuilds occupancy bitmap from restored tiles
+- Clears toolbox
+- Bulletproof regardless of how many edits happened
 
-## Edge Cases Identified
+## Auto-Recompute
+Changing tile size, increment, or budget automatically re-runs simulation in the current mode.
 
-1. **White void**: When a tile smaller than its slot is removed, the slot should become `empty` with its *original* slotW/slotH — not the tile's smaller dimensions. Currently the slot's w/h gets overwritten when a small piece is placed.
-
-2. **Drag cancel**: If you drag a tile and drop it on nothing, the source is already empty. The tile should go to toolbox rather than vanishing.
-
-3. **Drag onto self**: Dropping back on the same slot should be a no-op (tile stays).
-
-4. **Double-remove**: X button should not appear on empty slots.
-
-5. **Slot dimension restoration**: When a piece is removed from a slot, the slot needs to remember its original simulation dimensions so future placements work correctly.
-
-## Implementation
-
-### State Snapshot
-When simulation runs, `simResults._snapshot` stores a deep clone of all tile arrays. `Restore All` replaces tiles with the snapshot — handles any number of edits without incremental tracking.
+## Save/Load
+`.tilecalc` JSON files store:
+- Room geometry (verts, closed, priority, color, name)
+- Tile config (width, height, tab depth, increment)
+- Budget value, snap mode
+- Version field for forward compatibility

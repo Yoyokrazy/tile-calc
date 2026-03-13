@@ -70,9 +70,9 @@ button.mode-inactive{background:var(--surface2) !important;color:var(--text) !im
   <button id="snapBtn" class="snap-on" onclick="toggleSnap()">⊾ 90°</button>
   <div class="sep"></div>
   <label>Tile</label>
-  <input id="tileW" type="number" value="24" min="1" max="120" step="1">
+  <input id="tileW" type="number" value="24" min="1" max="120" step="1" onchange="if(simResults)simulate()">
   <span style="color:var(--muted)">×</span>
-  <input id="tileH" type="number" value="24" min="1" max="120" step="1">
+  <input id="tileH" type="number" value="24" min="1" max="120" step="1" onchange="if(simResults)simulate()">
   <span style="font-size:11px;color:var(--muted)">in</span>
   <div class="sep"></div>
   <label>Tab</label>
@@ -80,7 +80,7 @@ button.mode-inactive{background:var(--surface2) !important;color:var(--text) !im
   <span style="font-size:11px;color:var(--muted)">in</span>
   <div class="sep"></div>
   <label>Inc</label>
-  <input id="incr" type="number" value="12" min="1" max="120" step="1" style="width:48px" title="Grid snap increment (inches)">
+  <input id="incr" type="number" value="12" min="1" max="120" step="1" style="width:48px" title="Grid snap increment (inches)" onchange="if(simResults)simulate()">
   <span style="font-size:11px;color:var(--muted)">in</span>
   <div class="sep"></div>
   <button id="calcBtn" class="mode-active" onclick="simulate('calc')"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg> Calculate</button>
@@ -640,10 +640,16 @@ function occCanPlace(ri,wx,wy,w,h){
 function occClip(ri,wx,wy,w,h){
   const rr=simResults.rooms[ri];if(!rr.occ)return null;
   const{ow,oh,minX,minY}=rr.occ;
-  const cx=Math.max(wx,minX),cy=Math.max(wy,minY);
-  const cr=Math.min(wx+w,minX+ow),cb=Math.min(wy+h,minY+oh);
-  if(cr<=cx||cb<=cy)return null;
-  return{x:cx,y:cy,w:cr-cx,h:cb-cy,clipped:cr-cx<w-0.125||cb-cy<h-0.125};
+  const inc=parseFloat($('incr').value)||12;
+  // Clip to room bbox, then snap the clipped dimensions DOWN to increment
+  const rawR=Math.min(wx+w,minX+ow),rawB=Math.min(wy+h,minY+oh);
+  const rawL=Math.max(wx,minX),rawT=Math.max(wy,minY);
+  let cw=rawR-rawL,ch=rawB-rawT;
+  // If clipped on right/bottom, snap the placed width/height down to increment
+  if(cw<w-0.125) cw=Math.floor(cw/inc)*inc;
+  if(ch<h-0.125) ch=Math.floor(ch/inc)*inc;
+  if(cw<1||ch<1)return null;
+  return{x:rawL,y:rawT,w:cw,h:ch,clipped:cw<w-0.125||ch<h-0.125};
 }
 
 // Find which room a world point is in (using occ or pip)
