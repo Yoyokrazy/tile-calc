@@ -90,8 +90,9 @@ export function clearSlot(t) {
   t.cutEdges = null;
 }
 
-export function consolidateToolbox(toolbox, tw, th) {
+export function consolidateToolbox(toolbox, tw, th, inc) {
   const TOL = 0.125;
+  if (!inc) inc = 12;
   let changed = true;
   while (changed) {
     changed = false;
@@ -99,21 +100,29 @@ export function consolidateToolbox(toolbox, tw, th) {
       const a = toolbox[i].tile;
       for (let j = i + 1; j < toolbox.length; j++) {
         const b = toolbox[j].tile;
-        // Width merge: a on left, b on right
-        if (Math.abs(a.h - b.h) < TOL && Math.abs(a.w + b.w - tw) < TOL) {
-          const ce = { l: a.cutEdges ? a.cutEdges.l : false, t: (a.cutEdges ? a.cutEdges.t : false) || (b.cutEdges ? b.cutEdges.t : false),
-            r: b.cutEdges ? b.cutEdges.r : false, b: (a.cutEdges ? a.cutEdges.b : false) || (b.cutEdges ? b.cutEdges.b : false) };
-          const allClean = !ce.l && !ce.t && !ce.r && !ce.b;
-          toolbox[i] = { tile: { w: tw, h: th, type: allClean ? 'full' : 'cut', cutEdges: ce } };
-          toolbox.splice(j, 1); changed = true; break;
+        // Width merge: same height, combined width valid
+        if (Math.abs(a.h - b.h) < TOL) {
+          const combined = a.w + b.w;
+          const validW = Math.abs(combined - tw) < TOL || (combined <= tw + TOL && Math.abs(combined - Math.round(combined / inc) * inc) < TOL);
+          if (validW && combined <= tw + TOL) {
+            const ce = { l: a.cutEdges ? a.cutEdges.l : false, t: (a.cutEdges ? a.cutEdges.t : false) || (b.cutEdges ? b.cutEdges.t : false),
+              r: b.cutEdges ? b.cutEdges.r : false, b: (a.cutEdges ? a.cutEdges.b : false) || (b.cutEdges ? b.cutEdges.b : false) };
+            const isFull = Math.abs(combined - tw) < TOL && Math.abs(a.h - th) < TOL && !ce.l && !ce.t && !ce.r && !ce.b;
+            toolbox[i] = { tile: { w: combined, h: a.h, type: isFull ? 'full' : 'cut', cutEdges: ce } };
+            toolbox.splice(j, 1); changed = true; break;
+          }
         }
-        // Height merge: a on top, b on bottom
-        if (Math.abs(a.w - b.w) < TOL && Math.abs(a.h + b.h - th) < TOL) {
-          const ce = { l: (a.cutEdges ? a.cutEdges.l : false) || (b.cutEdges ? b.cutEdges.l : false), t: a.cutEdges ? a.cutEdges.t : false,
-            r: (a.cutEdges ? a.cutEdges.r : false) || (b.cutEdges ? b.cutEdges.r : false), b: b.cutEdges ? b.cutEdges.b : false };
-          const allClean = !ce.l && !ce.t && !ce.r && !ce.b;
-          toolbox[i] = { tile: { w: tw, h: th, type: allClean ? 'full' : 'cut', cutEdges: ce } };
-          toolbox.splice(j, 1); changed = true; break;
+        // Height merge: same width, combined height valid
+        if (Math.abs(a.w - b.w) < TOL) {
+          const combined = a.h + b.h;
+          const validH = Math.abs(combined - th) < TOL || (combined <= th + TOL && Math.abs(combined - Math.round(combined / inc) * inc) < TOL);
+          if (validH && combined <= th + TOL) {
+            const ce = { l: (a.cutEdges ? a.cutEdges.l : false) || (b.cutEdges ? b.cutEdges.l : false), t: a.cutEdges ? a.cutEdges.t : false,
+              r: (a.cutEdges ? a.cutEdges.r : false) || (b.cutEdges ? b.cutEdges.r : false), b: b.cutEdges ? b.cutEdges.b : false };
+            const isFull = Math.abs(combined - th) < TOL && Math.abs(a.w - tw) < TOL && !ce.l && !ce.t && !ce.r && !ce.b;
+            toolbox[i] = { tile: { w: a.w, h: combined, type: isFull ? 'full' : 'cut', cutEdges: ce } };
+            toolbox.splice(j, 1); changed = true; break;
+          }
         }
       }
       if (changed) break;

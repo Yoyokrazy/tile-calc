@@ -239,11 +239,10 @@ describe('consolidateToolbox', () => {
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: false, t: false, r: true, b: false } } },
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } }
     ];
-    consolidateToolbox(tb, 24, 24);
+    consolidateToolbox(tb, 24, 24, 12);
     expect(tb).toHaveLength(1);
     expect(tb[0].tile.type).toBe('full');
     expect(tb[0].tile.w).toBe(24);
-    // Outer edges preserved: l from a (false), r from b (false) → full
     expect(tb[0].tile.cutEdges.l).toBe(false);
     expect(tb[0].tile.cutEdges.r).toBe(false);
   });
@@ -253,11 +252,11 @@ describe('consolidateToolbox', () => {
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: true, b: false } } },
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } }
     ];
-    consolidateToolbox(tb, 24, 24);
+    consolidateToolbox(tb, 24, 24, 12);
     expect(tb).toHaveLength(1);
-    expect(tb[0].tile.type).toBe('cut'); // still cut because outer edges remain
-    expect(tb[0].tile.cutEdges.l).toBe(true); // from a's left
-    expect(tb[0].tile.cutEdges.r).toBe(false); // from b's right
+    expect(tb[0].tile.type).toBe('cut');
+    expect(tb[0].tile.cutEdges.l).toBe(true);
+    expect(tb[0].tile.cutEdges.r).toBe(false);
   });
 
   it('merges two halves (height)', () => {
@@ -265,9 +264,20 @@ describe('consolidateToolbox', () => {
       { tile: { w: 24, h: 12, type: 'cut', cutEdges: { l: false, t: false, r: false, b: true } } },
       { tile: { w: 24, h: 12, type: 'cut', cutEdges: { l: false, t: true, r: false, b: false } } }
     ];
-    consolidateToolbox(tb, 24, 24);
+    consolidateToolbox(tb, 24, 24, 12);
     expect(tb).toHaveLength(1);
     expect(tb[0].tile.type).toBe('full');
+  });
+
+  it('merges sub-tile pieces at increment boundary', () => {
+    const tb = [
+      { tile: { w: 6, h: 24, type: 'cut', cutEdges: { l: false, t: false, r: true, b: false } } },
+      { tile: { w: 6, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } }
+    ];
+    consolidateToolbox(tb, 24, 24, 6);
+    expect(tb).toHaveLength(1);
+    expect(tb[0].tile.w).toBe(12);
+    expect(tb[0].tile.type).toBe('cut');
   });
 
   it('does not merge incompatible pieces', () => {
@@ -275,13 +285,13 @@ describe('consolidateToolbox', () => {
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: {} } },
       { tile: { w: 8, h: 24, type: 'cut', cutEdges: {} } }
     ];
-    consolidateToolbox(tb, 24, 24);
+    consolidateToolbox(tb, 24, 24, 6);
     expect(tb).toHaveLength(2);
   });
 
   it('handles empty toolbox', () => {
     const tb = [];
-    consolidateToolbox(tb, 24, 24);
+    consolidateToolbox(tb, 24, 24, 12);
     expect(tb).toHaveLength(0);
   });
 
@@ -292,10 +302,21 @@ describe('consolidateToolbox', () => {
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: false, t: false, r: true, b: false } } },
       { tile: { w: 12, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } }
     ];
-    consolidateToolbox(tb, 24, 24);
+    consolidateToolbox(tb, 24, 24, 12);
     expect(tb).toHaveLength(2);
     expect(tb[0].tile.type).toBe('full');
     expect(tb[1].tile.type).toBe('full');
+  });
+
+  it('chains three 6" pieces into 18"', () => {
+    const tb = [
+      { tile: { w: 6, h: 24, type: 'cut', cutEdges: { l: false, t: false, r: true, b: false } } },
+      { tile: { w: 6, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: true, b: false } } },
+      { tile: { w: 6, h: 24, type: 'cut', cutEdges: { l: true, t: false, r: false, b: false } } }
+    ];
+    consolidateToolbox(tb, 24, 24, 6);
+    expect(tb).toHaveLength(1);
+    expect(tb[0].tile.w).toBe(18);
   });
 });
 

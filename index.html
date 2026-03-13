@@ -1135,27 +1135,55 @@ function resetView(){
   ox=pad+220+(sw/2)-((mnx+mxx)/2)*scale;oy=pad+(sh/2)-((mny+mxy)/2)*scale;qr()}
 
 // ===== TOOLBOX =====
+// Consolidate: merge any two rectangular pieces that form a larger valid rectangle
+// Pieces must share an edge of the same length and their combined dimension
+// must be a multiple of the increment (or equal to full tile size)
 function consolidateToolbox(){
-  const tw=parseFloat($('tileW').value)||24,th=parseFloat($('tileH').value)||24,TOL=0.125;
+  const tw=parseFloat($('tileW').value)||24,th=parseFloat($('tileH').value)||24;
+  const inc=parseFloat($('incr').value)||12;
+  const TOL=0.125;
   let changed=true;
   while(changed){changed=false;
     for(let i=0;i<toolbox.length;i++){const a=toolbox[i].tile;
       for(let j=i+1;j<toolbox.length;j++){const b=toolbox[j].tile;
-        // Width merge: a on left, b on right (a.cutEdges.r + b.cutEdges.l are the cut seam)
-        if(Math.abs(a.h-b.h)<TOL&&Math.abs(a.w+b.w-tw)<TOL){
-          // The seam edges (a.r and b.l) cancel out, outer edges preserved
-          const ce={l:a.cutEdges?a.cutEdges.l:false, t:(a.cutEdges?a.cutEdges.t:false)||(b.cutEdges?b.cutEdges.t:false),
-            r:b.cutEdges?b.cutEdges.r:false, b:(a.cutEdges?a.cutEdges.b:false)||(b.cutEdges?b.cutEdges.b:false)};
-          const allClean=!ce.l&&!ce.t&&!ce.r&&!ce.b;
-          toolbox[i]={tile:{w:tw,h:th,type:allClean?'full':'cut',cutEdges:ce}};
-          toolbox.splice(j,1);changed=true;break}
-        // Height merge: a on top, b on bottom
-        if(Math.abs(a.w-b.w)<TOL&&Math.abs(a.h+b.h-th)<TOL){
-          const ce={l:(a.cutEdges?a.cutEdges.l:false)||(b.cutEdges?b.cutEdges.l:false), t:a.cutEdges?a.cutEdges.t:false,
-            r:(a.cutEdges?a.cutEdges.r:false)||(b.cutEdges?b.cutEdges.r:false), b:b.cutEdges?b.cutEdges.b:false};
-          const allClean=!ce.l&&!ce.t&&!ce.r&&!ce.b;
-          toolbox[i]={tile:{w:tw,h:th,type:allClean?'full':'cut',cutEdges:ce}};
-          toolbox.splice(j,1);changed=true;break}}
+        // Width merge: same height, widths sum to full tile or increment-aligned
+        if(Math.abs(a.h-b.h)<TOL){
+          const combined=a.w+b.w;
+          // Must be exactly tile width, or a clean increment multiple ≤ tile width
+          const validW=Math.abs(combined-tw)<TOL||(combined<=tw+TOL&&Math.abs(combined-Math.round(combined/inc)*inc)<TOL);
+          if(validW&&combined<=tw+TOL){
+            const ce={l:a.cutEdges?a.cutEdges.l:false,
+              t:(a.cutEdges?a.cutEdges.t:false)||(b.cutEdges?b.cutEdges.t:false),
+              r:b.cutEdges?b.cutEdges.r:false,
+              b:(a.cutEdges?a.cutEdges.b:false)||(b.cutEdges?b.cutEdges.b:false)};
+            const isFull=Math.abs(combined-tw)<TOL&&Math.abs(a.h-th)<TOL&&!ce.l&&!ce.t&&!ce.r&&!ce.b;
+            toolbox[i]={tile:{w:combined,h:a.h,type:isFull?'full':'cut',cutEdges:ce}};
+            toolbox.splice(j,1);changed=true;break}}
+        // Height merge: same width, heights sum to full tile or increment-aligned
+        if(Math.abs(a.w-b.w)<TOL){
+          const combined=a.h+b.h;
+          const validH=Math.abs(combined-th)<TOL||(combined<=th+TOL&&Math.abs(combined-Math.round(combined/inc)*inc)<TOL);
+          if(validH&&combined<=th+TOL){
+            const ce={l:(a.cutEdges?a.cutEdges.l:false)||(b.cutEdges?b.cutEdges.l:false),
+              t:a.cutEdges?a.cutEdges.t:false,
+              r:(a.cutEdges?a.cutEdges.r:false)||(b.cutEdges?b.cutEdges.r:false),
+              b:b.cutEdges?b.cutEdges.b:false};
+            const isFull=Math.abs(combined-th)<TOL&&Math.abs(a.w-tw)<TOL&&!ce.l&&!ce.t&&!ce.r&&!ce.b;
+            toolbox[i]={tile:{w:a.w,h:combined,type:isFull?'full':'cut',cutEdges:ce}};
+            toolbox.splice(j,1);changed=true;break}}
+        // Try with b rotated (swap w/h)
+        if(Math.abs(a.h-b.w)<TOL){
+          const combined=a.w+b.h;
+          const validW=Math.abs(combined-tw)<TOL||(combined<=tw+TOL&&Math.abs(combined-Math.round(combined/inc)*inc)<TOL);
+          if(validW&&combined<=tw+TOL){
+            const bRot={l:b.cutEdges?b.cutEdges.b:false,t:b.cutEdges?b.cutEdges.l:false,
+              r:b.cutEdges?b.cutEdges.t:false,b:b.cutEdges?b.cutEdges.r:false};
+            const ce={l:a.cutEdges?a.cutEdges.l:false,t:(a.cutEdges?a.cutEdges.t:false)||bRot.t,
+              r:bRot.r,b:(a.cutEdges?a.cutEdges.b:false)||bRot.b};
+            const isFull=Math.abs(combined-tw)<TOL&&Math.abs(a.h-th)<TOL&&!ce.l&&!ce.t&&!ce.r&&!ce.b;
+            toolbox[i]={tile:{w:combined,h:a.h,type:isFull?'full':'cut',cutEdges:ce}};
+            toolbox.splice(j,1);changed=true;break}}
+      }
       if(changed)break}}
 }
 
@@ -1164,16 +1192,26 @@ function updateToolbox(){
   if(toolbox.length===0){el.style.display='none';return}
   el.style.display='block';
   cnt.textContent=`(${toolbox.length})`;
-  const colors={full:'#4a90d9',cut:'#e6a23c'};
-  const labels={full:'Full',cut:'Cut'};
+  const tw=parseFloat($('tileW').value)||24,th=parseFloat($('tileH').value)||24;
+  const maxPx=40; // max preview size in px
   items.innerHTML=toolbox.map((tb,i)=>{
-    const c=colors[tb.tile.type]||'#888';const l=labels[tb.tile.type]||tb.tile.type;
-    const ce=tb.tile.cutEdges||{};
-    const edges=[ce.l?'L':'',ce.t?'T':'',ce.r?'R':'',ce.b?'B':''].filter(Boolean).join('');
-    return`<div onmousedown="startToolboxDrag(event,${i})" style="display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:4px;cursor:grab;font-size:11px;border:1px solid transparent;background:var(--surface2)">
-      <div style="width:8px;height:8px;border-radius:2px;background:${c};flex-shrink:0"></div>
-      <span style="flex:1">${l} ${tb.tile.w}"×${tb.tile.h}"</span>
-      ${edges?`<span style="color:var(--muted);font-size:9px" title="Cut edges">✂${edges}</span>`:''}
+    const t=tb.tile,ce=t.cutEdges||{};
+    const sc=Math.min(maxPx/tw,maxPx/th); // scale to fit preview
+    const pw=Math.round(t.w*sc),ph=Math.round(t.h*sc);
+    const fill=t.type==='full'?'#4a90d9':'#e6a23c';
+    // Build SVG preview
+    let svg=`<svg width="${pw}" height="${ph}" style="flex-shrink:0;border-radius:2px">`;
+    svg+=`<rect x="0" y="0" width="${pw}" height="${ph}" fill="${fill}" opacity="0.5" rx="1"/>`;
+    svg+=`<rect x="0" y="0" width="${pw}" height="${ph}" fill="none" stroke="${fill}" stroke-width="1" rx="1"/>`;
+    // Draw cut edges as red dashed lines
+    if(ce.l)svg+=`<line x1="0" y1="0" x2="0" y2="${ph}" stroke="#f56c6c" stroke-width="2" stroke-dasharray="2,1"/>`;
+    if(ce.r)svg+=`<line x1="${pw}" y1="0" x2="${pw}" y2="${ph}" stroke="#f56c6c" stroke-width="2" stroke-dasharray="2,1"/>`;
+    if(ce.t)svg+=`<line x1="0" y1="0" x2="${pw}" y2="0" stroke="#f56c6c" stroke-width="2" stroke-dasharray="2,1"/>`;
+    if(ce.b)svg+=`<line x1="0" y1="${ph}" x2="${pw}" y2="${ph}" stroke="#f56c6c" stroke-width="2" stroke-dasharray="2,1"/>`;
+    svg+=`</svg>`;
+    return`<div onmousedown="startToolboxDrag(event,${i})" style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:4px;cursor:grab;font-size:11px;background:var(--surface2)">
+      ${svg}
+      <span style="flex:1">${t.w}"×${t.h}"</span>
     </div>`}).join('');
 }
 
