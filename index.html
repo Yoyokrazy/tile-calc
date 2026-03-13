@@ -570,12 +570,36 @@ function simulate(mode){
   toolbox=[];updateToolbox();renderStats();qr();
 }
 
-// Arrange: build occupancy bitmap so user can drag/rearrange tiles
+// Arrange: re-simulate with current settings, then build occupancy for manual editing
 function arrangeTiles(){
   if(!simResults||simResults.mode!=='budget')return;
-  buildOccupancy();
+  // Check if anything changed since last arrange
+  const tw=parseFloat($('tileW').value)||24,th=parseFloat($('tileH').value)||24;
+  const inc=parseFloat($('incr').value)||12;
+  const bv=$('budget').value.trim(),totalBudget=bv?parseInt(bv):null;
+  if(simResults.arranged&&simResults._arrangeKey===`${tw}_${th}_${inc}_${totalBudget}`)return; // no-op
+  // Re-run simulation from scratch with current params
+  const order=rooms.map((r,i)=>({r,i})).filter(x=>x.r.closed&&x.r.verts.length>=3).sort((a,b)=>a.r.priority-b.r.priority);
+  let offcuts=[],totalNew=0;
+  const results=new Array(rooms.length).fill(null);
+  for(const{r,i}of order){
+    const remaining=totalBudget!==null?totalBudget-totalNew:null;
+    const res=simRoom(r,tw,th,remaining,offcuts);
+    offcuts=res.offcuts;totalNew+=res.stats.newT;
+    results[i]=res;
+  }
+  for(let i=0;i<rooms.length;i++)if(!results[i])results[i]={tiles:[],stats:{full:0,cut:0,newT:0,unfilled:0,cutEdgeEndcaps:0,edgeStrips:0,outCorners:0,inCorners:0,perimIn:0,roomFt2:0}};
+  const t={full:0,cut:0,newT:0,unfilled:0,cutEdgeEndcaps:0,edgeStrips:0,outCorners:0,inCorners:0,roomFt2:0};
+  for(const rr of results){for(const k in t)t[k]+=(rr.stats[k]||0)}
+  const tileFt2=(totalNew*tw*th)/144;
+  const waste=tileFt2>0?Math.max(0,(tileFt2-t.roomFt2)/tileFt2*100):0;
+  simResults.rooms=results;
+  simResults.totals={...t,waste,tileFt2,budget:totalBudget};
+  simResults._snapshot=results.map(rr=>({tiles:rr.tiles.map(t=>({...t,cutEdges:t.cutEdges?{...t.cutEdges}:null}))}));
+  simResults._arrangeKey=`${tw}_${th}_${inc}_${totalBudget}`;
   simResults.arranged=true;
-  renderStats();qr();
+  buildOccupancy();
+  toolbox=[];updateToolbox();renderStats();qr();
 }
 
 // ===== OCCUPANCY BITMAP =====
