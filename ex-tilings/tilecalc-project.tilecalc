@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "rooms": [
+    {
+      "name": "game room",
+      "verts": [
+        {
+          "x": 60,
+          "y": 120
+        },
+        {
+          "x": 144,
+          "y": 120
+        },
+        {
+          "x": 144,
+          "y": 114
+        },
+        {
+          "x": 228,
+          "y": 114
+        },
+        {
+          "x": 228,
+          "y": 36
+        },
+        {
+          "x": 60,
+          "y": 36
+        }
+      ],
+      "closed": true,
+      "priority": 1,
+      "color": "#4a90d9"
+    },
+    {
+      "name": "craft room",
+      "verts": [
+        {
+          "x": 60,
+          "y": 228
+        },
+        {
+          "x": 204,
+          "y": 228
+        },
+        {
+          "x": 204,
+          "y": 144
+        },
+        {
+          "x": 60,
+          "y": 144
+        }
+      ],
+      "closed": true,
+      "priority": 2,
+      "color": "#e6a23c"
+    }
+  ],
+  "tileW": 24,
+  "tileH": 24,
+  "increment": 6,
+  "tabDepth": 0.25,
+  "budget": "30",
+  "snapMode": true,
+  "savedAt": "2026-03-13T19:27:37.323Z"
+}
