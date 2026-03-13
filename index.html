@@ -543,6 +543,8 @@ function simulate(mode){
   const tileFt2=(t.newT*tw*th)/144;
   const waste=tileFt2>0?Math.max(0,(tileFt2-t.roomFt2)/tileFt2*100):0;
   simResults={rooms:results,totals:{...t,waste,tileFt2,budget:totalBudget},mode:simMode};
+  // Snapshot for Restore All — deep clone of all tile arrays
+  simResults._snapshot=results.map(rr=>({tiles:rr.tiles.map(t=>({...t,cutEdges:t.cutEdges?{...t.cutEdges}:null}))}));
   toolbox=[];updateToolbox();renderStats();qr();
 }
 
@@ -617,8 +619,6 @@ function placeTileInSlot(srcTile, dstT) {
   const fits = sw <= dw + TOL && sh <= dh + TOL;
   const canCut = sw >= dw - TOL && sh >= dh - TOL;
   if (!fits && !canCut) return false;
-  // Save original state for restore
-  if (!dstT._origType) dstT._origType = dstT.type;
   if (fits) {
     dstT.w = sw; dstT.h = sh;
     dstT.type = srcTile.type;
@@ -643,13 +643,11 @@ function placeTileInSlot(srcTile, dstT) {
         cutEdges: {l: srcTile.cutEdges?srcTile.cutEdges.l:false, t: true, r: srcTile.cutEdges?srcTile.cutEdges.r:false, b: srcTile.cutEdges?srcTile.cutEdges.b:false}}});
     consolidateToolbox();
   }
-  dstT._reallocated = true;
   return true;
 }
 
 // Clear a slot back to empty, restoring slot dimensions
 function clearSlot(t) {
-  if (!t._origType) t._origType = t.type;
   t.type = 'unfilled';
   t.w = t._slotW || t.w;
   t.h = t._slotH || t.h;
@@ -795,7 +793,7 @@ function freePlaceTile(srcTile, wx, wy) {
   const newTile={x:clipL, y:clipT, w:placedW, h:placedH,
     _slotW:placedW, _slotH:placedH,
     type:isCut?'cut':(srcTile.type||'full'),
-    cutEdges:ce, _reallocated:true};
+    cutEdges:ce};
   const tiles=simResults.rooms[ri].tiles;
   tiles.push(newTile);
   // Remove any unfilled slots that this tile now covers
@@ -1021,13 +1019,14 @@ function pickUpTile(idx){
 function cancelHeld(){heldTile=null;updateToolbox();qr()}
 
 function clearToolbox(){
-  if(!simResults)return;
-  for(const rr of simResults.rooms){for(const t of rr.tiles){
-    if(t._origType){t.type=t._origType;delete t._origType;
-      // Restore slot dimensions
-      if(t._slotW){t.w=t._slotW;t.h=t._slotH}
-      t.cutEdges=null;t._reallocated=false}}}
-  toolbox=[];heldTile=null;heldRotated=false;updateToolbox();renderStats();qr();
+  if(!simResults||!simResults._snapshot)return;
+  // Restore all tile arrays from snapshot
+  for(let i=0;i<simResults.rooms.length;i++){
+    const snap=simResults._snapshot[i];
+    if(snap)simResults.rooms[i].tiles=snap.tiles.map(t=>({...t,cutEdges:t.cutEdges?{...t.cutEdges}:null}));
+  }
+  toolbox=[];heldTile=null;heldRotated=false;dragTileInfo=null;
+  updateToolbox();renderStats();qr();
 }
 
 // ===== SAVE/LOAD =====

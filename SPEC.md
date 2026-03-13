@@ -74,9 +74,7 @@ Given a piece `{w, h}` and a slot `{slotW, slotH}`:
 
 5. **Slot dimension restoration**: When a piece is removed from a slot, the slot needs to remember its original simulation dimensions so future placements work correctly.
 
-## Implementation Fix
+## Implementation
 
-Store `_slotW` and `_slotH` on every tile during simulation (= the slot's intended dimensions). These never change. When placing, the tile's `w,h` can be set to the piece's dimensions, but `_slotW/_slotH` remain for:
-- Rendering the empty slot at the right size
-- Determining if a piece fits during placement
-- Restoring on "Restore All"
+### State Snapshot
+When simulation runs, `simResults._snapshot` stores a deep clone of all tile arrays. `Restore All` replaces tiles with the snapshot — handles any number of edits without incremental tracking.

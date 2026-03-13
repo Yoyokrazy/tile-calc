@@ -84,7 +84,6 @@ export function placeTileInSlot(srcTile, dstT, toolbox) {
 }
 
 export function clearSlot(t) {
-  if (!t._origType) t._origType = t.type;
   t.type = 'unfilled';
   t.w = t._slotW || t.w;
   t.h = t._slotH || t.h;

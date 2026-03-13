@@ -220,13 +220,14 @@ describe('clearSlot', () => {
     expect(t.w).toBe(24);
     expect(t.h).toBe(24);
     expect(t.cutEdges).toBeNull();
-    expect(t._origType).toBe('cut');
   });
 
-  it('preserves _origType on second clear', () => {
-    const t = { x: 0, y: 0, w: 24, h: 24, _slotW: 24, _slotH: 24, type: 'full', _origType: 'full' };
+  it('uses current w/h if no _slotW', () => {
+    const t = { x: 0, y: 0, w: 18, h: 18, type: 'full' };
     clearSlot(t);
-    expect(t._origType).toBe('full'); // not overwritten
+    expect(t.type).toBe('unfilled');
+    expect(t.w).toBe(18);
+    expect(t.h).toBe(18);
   });
 });
 
